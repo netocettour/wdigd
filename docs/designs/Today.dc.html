@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&amp;family=Work+Sans:ital,wght@0,300..700;1,300..700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#f6f1e8} a{color:#a8552f} a:hover{color:#8f4426} @keyframes wdigd-cycle{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}</style>
+</helmet>
+<div style="color-scheme: {{ scheme }}">
+<div style="min-height:100%; box-sizing:border-box; background:light-dark(#f6f1e8,#211d17); color:light-dark(#2c2620,#eae3d7); font-family:'Work Sans',ui-sans-serif,sans-serif; padding:28px 24px 56px;">
+<div style="max-width:640px; margin:0 auto; display:flex; flex-direction:column; gap:30px;">
+  <sc-if value="{{ hasPrio }}" hint-placeholder-val="{{ false }}">
+    <div style="border-top:1px solid light-dark(#e2d8c6,#373027); border-bottom:1px solid light-dark(#e2d8c6,#373027); padding:10px 2px; display:flex; flex-direction:column; gap:7px;">
+      <button onClick="{{ togglePrio }}" style="display:flex; justify-content:space-between; align-items:center; width:100%; background:none; border:none; padding:0; cursor:pointer; font-family:inherit; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:light-dark(#93887a,#8f8577);">
+        <span>Prioridades de la semana</span><span style="font-size:13px;">{{ prioChevron }}</span>
+      </button>
+      <sc-if value="{{ prioOpen }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; gap:7px; flex-wrap:wrap; padding:2px 0 4px;">
+          <sc-for list="{{ prioItems }}" as="p" hint-placeholder-count="3">
+            <span style="font-family:'Literata',serif; font-size:14px; padding:4px 12px; border-radius:999px; border:1px solid light-dark(#ddd0ba,#3d362c); background:light-dark(#fbf7ef,#272119); color:light-dark(#4c443a,#c9c0b1);">{{ p }}</span>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+  <header style="display:flex; flex-direction:column; gap:6px;">
+    <div style="font-size:12.5px; letter-spacing:0.04em; color:light-dark(#93887a,#8f8577);">{{ fecha }}</div><h1 style="margin:0; font-family:'Literata',serif; font-weight:500; font-size:27px; line-height:1.25; letter-spacing:-0.01em;">¿Qué lograste hoy?</h1>
+    
+  </header>
+  <div style="display:flex; flex-direction:column; gap:10px;">
+    <input value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onKey }}" placeholder="Un bullet por vez · Enter agrega" style="width:100%; box-sizing:border-box; font-family:inherit; font-size:16px; padding:13px 15px; border-radius:10px; border:1px solid light-dark(#ddd2bf,#3a332a); background:light-dark(#fffdf8,#2a241d); color:inherit; outline:none;" style-focus="border-color: light-dark(#b05d3f,#a06a51)">
+    <sc-if value="{{ showEmpty }}" hint-placeholder-val="{{ false }}">
+      <p style="margin:2px 2px 0; font-size:14px; color:light-dark(#a49a8a,#7d7365);">Todavía no capturaste nada hoy.</p>
+    </sc-if>
+  </div>
+  <sc-if value="{{ hasBullets }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex; flex-direction:column;">
+    <sc-for list="{{ bullets }}" as="b" hint-placeholder-count="3">
+      <div onMouseEnter="{{ b.onEnter }}" onMouseLeave="{{ b.onLeave }}" style="display:flex; flex-direction:column; gap:9px; padding:14px 2px; border-bottom:1px solid light-dark(#ece3d1,#2c2620);">
+        <div style="display:flex; gap:11px; align-items:baseline;">
+          <span style="color:light-dark(#b05d3f,#c98a6b); font-size:15px;">—</span>
+          <span style="font-size:16px; line-height:1.5; flex:1;">{{ b.text }}</span>
+          <button onClick="{{ b.remove }}" title="Eliminar" style="{{ b.xStyle }}">×</button>
+        </div>
+        <div style="display:flex; gap:7px; flex-wrap:wrap; align-items:center; padding-left:26px;">
+          <sc-for list="{{ b.cats }}" as="c" hint-placeholder-count="3">
+            <button onClick="{{ c.toggle }}" style="{{ c.style }}">{{ c.label }}</button>
+          </sc-for>
+          <span style="width:1px; height:13px; background:light-dark(#ddd2bf,#3a332a); margin:0 3px;"></span>
+          <button onClick="{{ b.cycleTema }}" title="Alinear con una prioridad de la semana" style="{{ b.temaStyle }}">{{ b.temaEl }}</button>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  </sc-if>
+  <div style="display:flex; flex-direction:column; gap:16px; margin-top:14px;">
+    <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:light-dark(#93887a,#8f8577);">Antes esta semana</div>
+    <sc-for list="{{ prevDays }}" as="d" hint-placeholder-count="4">
+      <div style="display:grid; grid-template-columns:72px 1fr; gap:12px;">
+        <div style="font-size:13px; color:light-dark(#a49a8a,#7d7365);">{{ d.day }}</div>
+        <div style="display:flex; flex-direction:column; gap:5px;">
+          <sc-for list="{{ d.items }}" as="it" hint-placeholder-count="2">
+            <div style="font-size:14px; line-height:1.45; color:light-dark(#5c5346,#a89d8d);">{{ it }}</div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:820},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;filled&quot;,&quot;empty&quot;],&quot;default&quot;:&quot;filled&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { prioOpen: true, draft: '', editing: null };
+  CATS = ['Logro', 'Avance', 'Desbloqueo'];
+  PRIOS = ['Cerrar quarter comercial', 'Evaluación del equipo', 'Mañanas para plataforma'];
+  seed() {
+    if ((this.props.variant ?? 'filled') === 'empty') return [];
+    return [
+      { id: 1, text: 'Auditar prototipo de la nueva plataforma', cat: 'Avance', tema: 'Mañanas para plataforma' },
+      { id: 2, text: 'Evaluación de performance de Luis', cat: 'Logro', tema: 'Evaluación del equipo' },
+      { id: 3, text: 'Aprobar presupuesto para Socios', cat: 'Desbloqueo', tema: null },
+      { id: 4, text: 'Cerrar nuevas ventas en Brasil', cat: null, tema: 'Cerrar quarter comercial' },
+    ];
+  }
+  getBullets() { return this.state.bullets ?? this.seed(); }
+  setBullets(fn) { this.setState(s => ({ bullets: fn(s.bullets ?? this.seed()) })); }
+  chipStyle(sel) {
+    return {
+      fontFamily: "'Work Sans', sans-serif", fontSize: '12.5px', fontWeight: sel ? 500 : 400,
+      padding: '4px 12px', borderRadius: '999px', cursor: 'pointer',
+      border: sel ? '1px solid light-dark(#cb9271, #7d573f)' : '1px solid light-dark(#e0d6c3, #3a332a)',
+      background: sel ? 'light-dark(#f4e3d8, #362a20)' : 'transparent',
+      color: sel ? 'light-dark(#8f4a2e, #dda587)' : 'light-dark(#93887a, #8f8577)',
+    };
+  }
+  temaStyle(has) {
+    return {
+      fontFamily: "'Work Sans', sans-serif", fontSize: '12.5px', border: 'none', background: 'transparent',
+      cursor: 'pointer', padding: '4px 6px',
+      fontStyle: has ? 'normal' : 'italic',
+      color: has ? 'light-dark(#6f6455, #a89d8d)' : 'light-dark(#ab9f8d, #6e6355)',
+    };
+  }
+  renderVals() {
+    const mode = this.props.mode ?? 'light';
+    const raw = this.getBullets();
+    const bullets = raw.map(b => ({
+      text: b.text,
+      cats: this.CATS.map(c => ({
+        label: c, style: this.chipStyle(b.cat === c),
+        toggle: () => this.setBullets(bs => bs.map(x => x.id === b.id ? { ...x, cat: x.cat === c ? null : c } : x)),
+      })),
+      onEnter: () => this.setState({ hover: b.id }),
+      onLeave: () => this.setState(s => (s.hover === b.id ? { hover: null } : null)),
+      remove: () => this.setBullets(bs => bs.filter(x => x.id !== b.id)),
+      xStyle: {
+        background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', flex: 'none',
+        fontSize: '17px', lineHeight: 1, alignSelf: 'center',
+        color: 'light-dark(#a49a8a, #7d7365)', transition: 'opacity 0.15s',
+        opacity: this.state.hover === b.id ? 1 : 0,
+        pointerEvents: this.state.hover === b.id ? 'auto' : 'none',
+      },
+      temaStyle: this.temaStyle(!!b.tema),
+      temaEl: React.createElement('span', {
+        key: b.tema ?? 'none',
+        style: { display: 'inline-block', animation: 'wdigd-cycle 0.25s ease' },
+      }, b.tema ?? 'alinear con prioridades'),
+      cycleTema: () => this.setBullets(bs => bs.map(x => {
+        if (x.id !== b.id) return x;
+        const i = this.PRIOS.indexOf(x.tema);
+        return { ...x, tema: i + 1 < this.PRIOS.length ? this.PRIOS[i + 1] : null };
+      })),
+    }));
+    return {
+      scheme: mode === 'dark' ? 'only dark' : 'only light',
+      hasPrio: (this.props.variant ?? 'filled') !== 'empty',
+      prioOpen: this.state.prioOpen,
+      togglePrio: () => this.setState(s => ({ prioOpen: !s.prioOpen })),
+      prioChevron: this.state.prioOpen ? '–' : '+',
+      prioItems: ['Cerrar quarter comercial', 'Evaluación del equipo', 'Mañanas para plataforma'],
+      fecha: 'Sábado 18 de julio',
+      draft: this.state.draft,
+      onDraft: e => this.setState({ draft: e.target.value }),
+      onKey: e => {
+        if (e.key === 'Enter' && e.target.value.trim()) {
+          const t = e.target.value.trim();
+          this.setBullets(bs => [...bs, { id: Date.now(), text: t, cat: null, tema: null }]);
+          this.setState({ draft: '' });
+        }
+      },
+      bullets,
+      hasBullets: bullets.length > 0,
+      showEmpty: bullets.length === 0,
+      prevDays: [
+        { day: 'lunes', items: ['Planificar la semana', 'Reunión de pipeline con el equipo comercial'] },
+        { day: 'martes', items: ['Primera revisión del prototipo de la plataforma', 'Feedback 1:1 con Luis'] },
+        { day: 'miércoles', items: ['Destrabar el contrato con el proveedor Y'] },
+        { day: 'jueves', items: ['Preparar propuesta para Socios', 'Llamada con el equipo de Brasil'] },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

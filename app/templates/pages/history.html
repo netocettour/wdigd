@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Historial · wdigd{% endblock %}
+{% block content %}
+<header class="day-header">
+  <h1 class="day-title">Historial</h1>
+</header>
+<div class="hist-list">
+  {% for w in weeks %}
+  <a class="hist-row" href="/week/{{ w.iso }}">
+    <div class="hist-main">
+      <span class="hist-label">{{ w.label }}{% if w.is_current %} · en curso{% endif %}</span>
+      <span class="hist-year">{{ w.year }}</span>
+    </div>
+    <div class="hist-meta">
+      <span>{{ w.count }} {{ "bullet" if w.count == 1 else "bullets" }}</span>
+      <span class="hist-status">{{ w.status }}</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

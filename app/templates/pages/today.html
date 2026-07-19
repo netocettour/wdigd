@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Hoy · wdigd{% endblock %}
+{% block content %}
+{% if prioridades %}
+<details class="prio-block" open>
+  <summary>Prioridades de la semana</summary>
+  <div class="prio-chips">
+    {% for p in prioridades %}<span class="chip-prio">{{ p }}</span>{% endfor %}
+  </div>
+</details>
+{% endif %}
+
+<header class="day-header">
+  <div class="day-date">{{ fecha }}</div>
+  <h1 class="day-title">¿Qué lograste hoy?</h1>
+</header>
+
+<form class="capture-form" hx-post="/entries" hx-target="#today-bullets" hx-swap="outerHTML"
+  hx-on::after-request="if(event.detail.successful) this.reset()">
+  <input name="text" placeholder="Un bullet por vez · Enter agrega" autocomplete="off" autofocus>
+  <button type="submit" hidden></button>
+</form>
+
+{% include "components/bullets_today.html" %}
+
+{% if prev_days %}
+<div class="prev-days">
+  <div class="prev-days-label">Antes esta semana</div>
+  {% for d in prev_days %}
+  <div class="prev-day">
+    <div class="prev-day-name">{{ d.day }}</div>
+    <div class="prev-day-items">
+      {% for it in d["items"] %}<div class="prev-item">{{ it }}</div>{% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

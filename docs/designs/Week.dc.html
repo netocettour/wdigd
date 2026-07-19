@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&amp;family=Work+Sans:ital,wght@0,300..700;1,300..700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#f6f1e8} a{color:#a8552f} a:hover{color:#8f4426} @keyframes wdigd-cycle{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}</style>
+</helmet>
+<div style="color-scheme: {{ scheme }}">
+<div style="min-height:100%; box-sizing:border-box; background:light-dark(#f6f1e8,#211d17); color:light-dark(#2c2620,#eae3d7); font-family:'Work Sans',ui-sans-serif,sans-serif; padding:32px 24px 72px;">
+<div style="max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:52px;">
+  <header style="display:flex; flex-direction:column; gap:8px;">
+    <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:light-dark(#93887a,#8f8577);">Sesión semanal</div>
+    <h1 style="margin:0; font-family:'Literata',serif; font-weight:500; font-size:29px; line-height:1.2; letter-spacing:-0.01em;">Semana del 13 al 19 de julio</h1>
+    <sc-if value="{{ closed }}" hint-placeholder-val="{{ false }}">
+      <div style="font-size:13.5px; color:light-dark(#93887a,#8f8577);">Semana cerrada · <button onClick="{{ reopen }}" style="background:none; border:none; padding:0; font-family:inherit; font-size:13.5px; color:light-dark(#a8552f,#c98a6b); cursor:pointer; text-decoration:underline; text-underline-offset:3px;">reabrir</button></div>
+    </sc-if>
+  </header>
+
+  <section style="display:flex; flex-direction:column; gap:18px;">
+    <div style="display:flex; flex-direction:column; gap:3px;">
+      <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:light-dark(#b08d6d,#9a7458);">1</div>
+      <h2 style="margin:0; font-family:'Literata',serif; font-weight:500; font-size:20px;">Resumen de la semana</h2>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:20px;">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+        <div style="{{ g.boxStyle }}">
+          <div style="{{ g.labelStyle }}">{{ g.name }}</div>
+          <sc-if value="{{ g.isFuera }}" hint-placeholder-val="{{ false }}">
+            <div style="font-family:'Literata',serif; font-style:italic; font-size:13.5px; color:light-dark(#93887a,#8f8577); margin-top:-2px;">Nada de esto empuja las prioridades que definiste el domingo. Puede ser una señal.</div>
+          </sc-if>
+          <div style="display:flex; flex-direction:column;">
+            <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="3">
+              <div onClick="{{ it.select }}" style="{{ it.rowStyle }}">
+                <span style="{{ it.dotStyle }}">{{ it.dot }}</span>
+                <span style="font-size:12px; color:light-dark(#a49a8a,#7d7365); width:30px; flex:none; padding-top:2px;">{{ it.day }}</span>
+                <div style="display:flex; flex-direction:column; gap:6px; flex:1;">
+                  <div style="display:flex; gap:8px; align-items:baseline; flex-wrap:wrap;">
+                    <span style="font-size:15px; line-height:1.45;">{{ it.text }}</span>
+                    <sc-if value="{{ it.promoted }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:11.5px; font-style:italic; color:light-dark(#ab9f8d,#6e6355);">→ highlight</span>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ it.showChips }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                      <sc-for list="{{ it.cats }}" as="c" hint-placeholder-count="3">
+                        <button onClick="{{ c.toggle }}" style="{{ c.style }}">{{ c.label }}</button>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ it.showPrio }}" hint-placeholder-val="{{ false }}">
+                    <div>
+                      <button onClick="{{ it.prioToggle }}" title="Alinear con una prioridad de la semana" style="{{ it.prioStyle }}">{{ it.prioEl }}</button>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ it.showCatText }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:12px; color:light-dark(#93887a,#8f8577);">{{ it.cat }}</div>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; flex-direction:column; gap:3px;">
+      <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:light-dark(#b08d6d,#9a7458);">2</div>
+      <h2 style="margin:0; font-family:'Literata',serif; font-weight:500; font-size:20px;">Observaciones</h2>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:9px;">
+      <sc-for list="{{ obs }}" as="o" hint-placeholder-count="4">
+        <p style="margin:0; font-size:14.5px; line-height:1.55; color:light-dark(#4c443a,#c9c0b1);">{{ o }}</p>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; flex-direction:column; gap:3px;">
+      <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:light-dark(#b08d6d,#9a7458);">3</div>
+      <h2 style="margin:0; font-family:'Literata',serif; font-weight:500; font-size:20px;">Highlights de la semana</h2>
+    </div>
+    <sc-if value="{{ showPromoteHint }}" hint-placeholder-val="{{ false }}">
+      <p style="margin:0; font-size:14px; color:light-dark(#a49a8a,#7d7365);">Tocá bullets del bloque 1 para destacarlos: cada uno aparece acá como highlight y su texto se puede dejar en limpio.</p>
+    </sc-if>
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <sc-for list="{{ logros }}" as="l" hint-placeholder-count="2">
+        <div style="display:flex; gap:12px; align-items:flex-start; border-left:2px solid light-dark(#cb9271,#7d573f); padding-left:14px;">
+          <div style="display:flex; flex-direction:column; gap:3px; flex:1;">
+            <sc-if value="{{ l.isEditable }}" hint-placeholder-val="{{ false }}">
+              <input value="{{ l.text }}" onChange="{{ l.onEdit }}" style="width:100%; box-sizing:border-box; font-family:'Literata',serif; font-size:17px; line-height:1.45; border:none; background:transparent; color:inherit; outline:none; padding:0;">
+            </sc-if>
+            <sc-if value="{{ l.isReadonly }}" hint-placeholder-val="{{ true }}">
+              <div style="font-family:'Literata',serif; font-size:17px; line-height:1.45;">{{ l.text }}</div>
+            </sc-if>
+            <div style="font-size:12px; color:light-dark(#a49a8a,#7d7365);">{{ l.temas }}</div>
+          </div>
+          <sc-if value="{{ l.isEditable }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ l.remove }}" title="Quitar highlight" style="background:none; border:none; cursor:pointer; padding:2px 4px; font-size:16px; line-height:1; color:light-dark(#a49a8a,#7d7365);">×</button>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; flex-direction:column; gap:3px;">
+      <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:light-dark(#b08d6d,#9a7458);">4</div>
+      <h2 style="margin:0; font-family:'Literata',serif; font-weight:500; font-size:20px;">Journal semanal</h2>
+      <div style="margin-top:6px; font-family:'Literata',serif; font-style:italic; font-size:16px; line-height:1.5; color:light-dark(#93887a,#8f8577); text-wrap:pretty;">Tus sensaciones sobre: ritmo de trabajo diario, interacciones importantes y enfoque estratégico.</div>
+    </div>
+    <sc-if value="{{ editable }}" hint-placeholder-val="{{ true }}">
+      <textarea value="{{ narrativa }}" onChange="{{ onNarrativa }}" placeholder="Una página en blanco." rows="9" style="width:100%; box-sizing:border-box; font-family:'Literata',serif; font-size:16px; line-height:1.7; padding:18px 20px; border-radius:10px; border:1px solid light-dark(#ddd2bf,#3a332a); background:light-dark(#fffdf8,#2a241d); color:inherit; outline:none; resize:vertical;" style-focus="border-color: light-dark(#b05d3f,#a06a51)"></textarea>
+    </sc-if>
+    <sc-if value="{{ closed }}" hint-placeholder-val="{{ false }}">
+      <div style="font-family:'Literata',serif; font-size:16px; line-height:1.7; white-space:pre-wrap; color:light-dark(#3a332b,#d8d0c2);">{{ narrativa }}</div>
+    </sc-if>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; flex-direction:column; gap:3px;">
+      <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:light-dark(#b08d6d,#9a7458);">5</div>
+      <h2 style="margin:0; font-family:'Literata',serif; font-weight:500; font-size:20px;">Preocupaciones y seguimientos</h2>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:28px;">
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <div style="font-size:12.5px; font-weight:500; color:light-dark(#7c7060,#a1968a);">Preocupaciones</div>
+          <div style="font-family:'Literata',serif; font-style:italic; font-size:14.5px; color:light-dark(#93887a,#8f8577);">¿De qué tenés miedo esta semana?</div>
+        </div>
+        <sc-for list="{{ preo }}" as="p" hint-placeholder-count="1">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <div style="font-size:15px; line-height:1.5;">{{ p.t }}</div>
+            <sc-if value="{{ p.hasNote }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12.5px; font-style:italic; color:light-dark(#a49a8a,#7d7365);">{{ p.note }}</div>
+            </sc-if>
+          </div>
+        </sc-for>
+        <sc-if value="{{ editable }}" hint-placeholder-val="{{ true }}">
+          <input onKeyDown="{{ addPreo }}" placeholder="Agregar…" style="width:100%; box-sizing:border-box; font-family:inherit; font-size:14px; padding:9px 12px; border-radius:8px; border:1px solid light-dark(#ddd2bf,#3a332a); background:light-dark(#fffdf8,#2a241d); color:inherit; outline:none;">
+        </sc-if>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <div style="font-size:12.5px; font-weight:500; color:light-dark(#7c7060,#a1968a);">Seguimientos</div>
+          <div style="font-family:'Literata',serif; font-style:italic; font-size:14.5px; color:light-dark(#93887a,#8f8577);">Cosas que hay que estarles atrás.</div>
+        </div>
+        <sc-for list="{{ seg }}" as="s" hint-placeholder-count="1">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <div style="font-size:15px; line-height:1.5;">{{ s.t }}</div>
+            <sc-if value="{{ s.hasNote }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12.5px; font-style:italic; color:light-dark(#a49a8a,#7d7365);">{{ s.note }}</div>
+            </sc-if>
+          </div>
+        </sc-for>
+        <sc-if value="{{ editable }}" hint-placeholder-val="{{ true }}">
+          <input onKeyDown="{{ addSeg }}" placeholder="Agregar…" style="width:100%; box-sizing:border-box; font-family:inherit; font-size:14px; padding:9px 12px; border-radius:8px; border:1px solid light-dark(#ddd2bf,#3a332a); background:light-dark(#fffdf8,#2a241d); color:inherit; outline:none;">
+        </sc-if>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex; flex-direction:column; gap:16px;">
+    <div style="display:flex; flex-direction:column; gap:3px;">
+      <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:light-dark(#b08d6d,#9a7458);">6</div>
+      <h2 style="margin:0; font-family:'Literata',serif; font-weight:500; font-size:20px;">Prioridades para la semana que viene</h2>
+      <p style="margin:4px 0 0; font-size:13.5px; color:light-dark(#a49a8a,#7d7365);">Lo que quieras desarrollar va en la escritura; acá cada prioridad queda en dos o tres palabras.</p>
+    </div>
+    <sc-if value="{{ hasPrios }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <sc-for list="{{ priosList }}" as="p" hint-placeholder-count="3">
+          <span style="display:inline-flex; align-items:center; gap:7px; font-family:'Literata',serif; font-size:15px; padding:6px 14px; border-radius:999px; border:1px solid light-dark(#cb9271,#7d573f); background:light-dark(#fbf7ef,#272119); color:light-dark(#4c443a,#d8d0c2);">
+            {{ p.text }}
+            <sc-if value="{{ p.removable }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ p.remove }}" style="background:none; border:none; padding:0; cursor:pointer; font-size:13px; line-height:1; color:light-dark(#a49a8a,#7d7365);">×</button>
+            </sc-if>
+          </span>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ editable }}" hint-placeholder-val="{{ true }}">
+      <input onKeyDown="{{ addPrio }}" placeholder="Una prioridad, en dos o tres palabras, y Enter" style="width:100%; max-width:420px; box-sizing:border-box; font-family:inherit; font-size:14.5px; padding:10px 13px; border-radius:8px; border:1px solid light-dark(#ddd2bf,#3a332a); background:light-dark(#fffdf8,#2a241d); color:inherit; outline:none;">
+      <div>
+        <button onClick="{{ closeWeek }}" style="font-family:inherit; font-size:14px; font-weight:500; padding:10px 22px; border-radius:999px; border:none; cursor:pointer; background:light-dark(#a8552f,#8f4a2e); color:#f6f1e8;">Cerrar la semana</button>
+      </div>
+    </sc-if>
+  </section>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:760,&quot;height&quot;:900},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;curso&quot;,&quot;cerrada&quot;,&quot;pocos&quot;],&quot;default&quot;:&quot;curso&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {};
+  CATS = ['Logro', 'Avance', 'Desbloqueo'];
+  PRIOS = ['Cerrar quarter comercial', 'Evaluación del equipo', 'Mañanas para plataforma'];
+  seedData() {
+    const variant = this.props.variant ?? 'curso';
+    const preo = [{ t: 'No quiero subestimar el costo de la decisión X, hay que trabajarla a consciencia.', note: 'Este tema apareció también las últimas 2 semanas.' }];
+    const seg = [{ t: 'El proveedor Y no parece serio; el deal permite salirnos, pero hay que estarle atrás.' }];
+    const full = [
+      { id: 1, day: 'lun', text: 'Planificar la semana', cat: 'Desbloqueo', tema: null },
+      { id: 2, day: 'lun', text: 'Reunión de pipeline con el equipo comercial', cat: 'Avance', tema: 'Cerrar quarter comercial' },
+      { id: 3, day: 'mar', text: 'Primera revisión del prototipo de la plataforma', cat: 'Avance', tema: 'Mañanas para plataforma' },
+      { id: 4, day: 'mar', text: 'Feedback 1:1 con Luis', cat: 'Logro', tema: 'Evaluación del equipo' },
+      { id: 5, day: 'mié', text: 'Destrabar el contrato con el proveedor Y', cat: 'Desbloqueo', tema: null },
+      { id: 6, day: 'mié', text: 'Auditar prototipo de la nueva plataforma', cat: 'Avance', tema: 'Mañanas para plataforma' },
+      { id: 7, day: 'jue', text: 'Preparar propuesta para Socios', cat: null, tema: null },
+      { id: 8, day: 'jue', text: 'Llamada con el equipo de Brasil', cat: null, tema: 'Cerrar quarter comercial' },
+      { id: 9, day: 'vie', text: 'Evaluación de performance de Luis', cat: 'Logro', tema: 'Evaluación del equipo' },
+      { id: 10, day: 'vie', text: 'Aprobar presupuesto para Socios', cat: 'Desbloqueo', tema: null },
+      { id: 11, day: 'vie', text: 'Cerrar nuevas ventas en Brasil', cat: 'Avance', tema: 'Cerrar quarter comercial' },
+      { id: 12, day: 'sáb', text: 'Ordenar notas para la sesión semanal', cat: null, tema: null },
+    ];
+    if (variant === 'pocos') return {
+      closed: false, preo: [], seg,
+      bullets: [
+        { id: 1, day: 'lun', text: 'Planificar la semana', cat: 'Desbloqueo', tema: null },
+        { id: 2, day: 'lun', text: 'Reunión de pipeline con el equipo comercial', cat: 'Avance', tema: 'Cerrar quarter comercial' },
+        { id: 7, day: 'jue', text: 'Preparar propuesta para Socios', cat: null, tema: null },
+        { id: 8, day: 'jue', text: 'Llamada con el equipo de Brasil', cat: null, tema: 'Cerrar quarter comercial' },
+      ],
+      logros: [], narrativa: '', prios: [],
+      obsExtra: ['Capturaste 2 de 7 días.'],
+    };
+    if (variant === 'cerrada') return {
+      closed: true, preo, seg,
+      bullets: full.map(b => ({ ...b, cat: b.cat ?? 'Avance', promoted: [9, 10, 11].includes(b.id) })),
+      logros: [
+        { bid: 9, text: 'Cerré la evaluación de performance de Luis, con un plan claro para el próximo quarter.', temas: 'Evaluación del equipo' },
+        { bid: 10, text: 'La propuesta para Socios quedó aprobada, con presupuesto.', temas: 'Fuera de prioridades' },
+        { bid: 11, text: 'Brasil pasó a etapa de contrato.', temas: 'Cerrar quarter comercial' },
+      ],
+      narrativa: 'Fue una semana de cerrar cosas que venían abiertas hace rato. Lo de Luis salió mejor de lo que esperaba: la conversación difícil era conmigo, no con él.\n\nLa plataforma sigue avanzando pero sin un logro a la vista; la semana que viene quiero definir qué significaría cerrar esa etapa.',
+      prios: ['Cerrar etapa plataforma', 'Firmar con Brasil', 'Miércoles a la mañana libre'],
+      obsExtra: ['Construcción / reacción: 8 de 12 bullets fueron construcción.', 'La prioridad con más presencia fue Cerrar quarter comercial.', 'Mañanas para plataforma lleva 3 semanas con avances y ningún logro.', 'Capturaste 6 de 7 días.'],
+    };
+    return {
+      closed: false, preo, seg, bullets: full, logros: [], narrativa: '', prios: [],
+      obsExtra: ['Construcción / reacción: 8 de 12 bullets fueron construcción.', 'La prioridad con más presencia fue Cerrar quarter comercial.', 'Mañanas para plataforma lleva 3 semanas con avances y ningún logro.', 'Capturaste 6 de 7 días.'],
+    };
+  }
+  getData() { return this.state.data ?? this.seedData(); }
+  upd(fn) { this.setState(s => ({ data: fn(s.data ?? this.seedData()) })); }
+  chipStyle(sel) {
+    return {
+      fontFamily: "'Work Sans', sans-serif", fontSize: '12px', fontWeight: sel ? 500 : 400,
+      padding: '3px 11px', borderRadius: '999px', cursor: 'pointer',
+      border: sel ? '1px solid light-dark(#cb9271, #7d573f)' : '1px solid light-dark(#e0d6c3, #3a332a)',
+      background: sel ? 'light-dark(#f4e3d8, #362a20)' : 'transparent',
+      color: sel ? 'light-dark(#8f4a2e, #dda587)' : 'light-dark(#93887a, #8f8577)',
+    };
+  }
+  renderVals() {
+    const mode = this.props.mode ?? 'light';
+    const d = this.getData();
+    const editable = !d.closed;
+    const order = this.PRIOS;
+    const names = order.filter(t => d.bullets.some(b => b.tema === t));
+    const groups = [...names.map(n => ({ name: n, items: d.bullets.filter(b => b.tema === n) })),
+      ...(d.bullets.some(b => !b.tema) ? [{ name: 'Fuera de las prioridades de la semana', items: d.bullets.filter(b => !b.tema) }] : [])]
+      .map(g => {
+        const isFuera = g.name === 'Fuera de las prioridades de la semana';
+        return {
+        name: g.name,
+        isFuera,
+        boxStyle: isFuera
+          ? { display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '2px solid light-dark(#b05d3f, #8a5a41)', paddingLeft: '16px', marginTop: '6px' }
+          : { display: 'flex', flexDirection: 'column', gap: '6px' },
+        labelStyle: {
+          fontSize: '12.5px', fontWeight: 500, letterSpacing: '0.03em',
+          color: isFuera ? 'light-dark(#8f4a2e, #dda587)' : 'light-dark(#7c7060, #a1968a)',
+          textTransform: isFuera ? 'uppercase' : 'none',
+          letterSpacing: isFuera ? '0.07em' : '0.03em',
+        },
+        items: g.items.map((b, i) => {
+          const isSel = !!b.promoted;
+          const uncat = !b.cat;
+          return {
+            day: b.day, text: b.text, cat: b.cat, promoted: !!b.promoted,
+            showChips: editable && uncat && !isFuera, showCatText: !uncat && !isFuera,
+            showPrio: editable && isFuera,
+            prioStyle: {
+              fontFamily: "'Work Sans', sans-serif", fontSize: '12.5px', border: 'none', background: 'transparent',
+              cursor: 'pointer', padding: '2px 0', fontStyle: 'italic',
+              color: (this.state.pending && this.state.pending.id === b.id && this.state.pending.tema)
+                ? 'light-dark(#8f4a2e, #dda587)' : 'light-dark(#ab9f8d, #6e6355)',
+            },
+            prioEl: React.createElement('span', {
+              key: (this.state.pending && this.state.pending.id === b.id ? this.state.pending.tema : b.tema) ?? 'none',
+              style: { display: 'inline-block', animation: 'wdigd-cycle 0.25s ease' },
+            }, (this.state.pending && this.state.pending.id === b.id ? this.state.pending.tema : b.tema) ?? 'alinear con prioridades'),
+            prioToggle: e => {
+              e.stopPropagation();
+              const cur = (this.state.pending && this.state.pending.id === b.id) ? this.state.pending.tema : b.tema;
+              const i = this.PRIOS.indexOf(cur);
+              const next = i + 1 < this.PRIOS.length ? this.PRIOS[i + 1] : null;
+              clearTimeout(this._prioTimer);
+              this.setState({ pending: { id: b.id, tema: next } });
+              this._prioTimer = setTimeout(() => {
+                const p = this.state.pending;
+                if (!p) return;
+                this.setState({ pending: null });
+                this.upd(dd => ({ ...dd, bullets: dd.bullets.map(x => x.id === p.id ? { ...x, tema: p.tema } : x) }));
+              }, 1400);
+            },
+            dot: isSel ? '★' : (editable ? '☆' : ''),
+            dotStyle: { width: '18px', flex: 'none', fontSize: '14px', lineHeight: '1.4', fontFamily: "'Literata', serif", color: isSel ? 'light-dark(#a8552f, #c98a6b)' : 'light-dark(#c9bda9, #4a4238)' },
+            rowStyle: {
+              display: 'flex', gap: '10px', alignItems: 'flex-start', padding: '13px 12px', borderRadius: '8px',
+              cursor: editable ? 'pointer' : 'default', userSelect: 'none',
+              background: 'transparent',
+              marginBottom: '2px',
+            },
+            select: () => {
+              if (!editable) return;
+              this.upd(dd => dd.logros.some(l => l.bid === b.id)
+                ? { ...dd, logros: dd.logros.filter(l => l.bid !== b.id), bullets: dd.bullets.map(x => x.id === b.id ? { ...x, promoted: false } : x) }
+                : { ...dd, logros: [...dd.logros, { bid: b.id, text: b.text, temas: b.tema ?? 'Fuera de prioridades' }], bullets: dd.bullets.map(x => x.id === b.id ? { ...x, promoted: true } : x) });
+            },
+            cats: this.CATS.map(c => ({
+              label: c, style: this.chipStyle(b.cat === c),
+              toggle: e => { e.stopPropagation(); this.upd(dd => ({ ...dd, bullets: dd.bullets.map(x => x.id === b.id ? { ...x, cat: x.cat === c ? null : c } : x) })); },
+            })),
+          };
+        }),
+      };
+      });
+    const counts = d.bullets.reduce((a, b) => { const k = b.cat ?? 'sin'; a[k] = (a[k] || 0) + 1; return a; }, {});
+    const countLine = 'Esta semana: ' + (counts['Logro'] || 0) + ' logros · ' + (counts['Avance'] || 0) + ' avances · ' + (counts['Desbloqueo'] || 0) + ' desbloqueos' + (counts.sin ? ' · ' + counts.sin + ' sin categoría' : '') + '.';
+    const fuera = d.bullets.filter(b => !b.tema).length;
+    const fueraLine = fuera + ' de ' + d.bullets.length + ' bullets quedaron fuera de las prioridades de la semana.';
+    return {
+      scheme: mode === 'dark' ? 'only dark' : 'only light',
+      closed: d.closed, editable,
+      reopen: () => this.upd(dd => ({ ...dd, closed: false })),
+      closeWeek: () => this.upd(dd => ({ ...dd, closed: true })),
+      groups,
+      obs: [countLine, fueraLine, ...d.obsExtra],
+      showPromoteHint: editable && d.logros.length === 0,
+      logros: d.logros.map(l => ({
+        text: l.text, temas: l.temas,
+        isEditable: editable, isReadonly: !editable,
+        onEdit: e => { const v = e.target.value; this.upd(dd => ({ ...dd, logros: dd.logros.map(x => x.bid === l.bid ? { ...x, text: v } : x) })); },
+        remove: () => this.upd(dd => ({ ...dd, logros: dd.logros.filter(x => x.bid !== l.bid), bullets: dd.bullets.map(x => x.id === l.bid ? { ...x, promoted: false } : x) })),
+      })),
+      narrativa: d.narrativa,
+      onNarrativa: e => { const v = e.target.value; this.upd(dd => ({ ...dd, narrativa: v })); },
+      preo: d.preo.map(p => ({ ...p, hasNote: !!p.note })),
+      seg: d.seg.map(s => ({ ...s, hasNote: !!s.note })),
+      addPreo: e => { if (e.key === 'Enter' && e.target.value.trim()) { const t = e.target.value.trim(); e.target.value = ''; this.upd(dd => ({ ...dd, preo: [...dd.preo, { t }] })); } },
+      addSeg: e => { if (e.key === 'Enter' && e.target.value.trim()) { const t = e.target.value.trim(); e.target.value = ''; this.upd(dd => ({ ...dd, seg: [...dd.seg, { t }] })); } },
+      hasPrios: d.prios.length > 0,
+      priosList: d.prios.map((t, i) => ({
+        text: t, removable: editable,
+        remove: () => this.upd(dd => ({ ...dd, prios: dd.prios.filter((_, j) => j !== i) })),
+      })),
+      addPrio: e => { if (e.key === 'Enter' && e.target.value.trim()) { const t = e.target.value.trim(); e.target.value = ''; this.upd(dd => ({ ...dd, prios: [...dd.prios, t] })); } },
+    };
+  }
+}
+</script>
+</body>
+</html>

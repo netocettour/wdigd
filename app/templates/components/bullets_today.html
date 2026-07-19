@@ -1,0 +1,8 @@
+<div id="today-bullets" data-priorities='{{ (prioridades or [])|tojson }}'>
+  {% if not bullets %}
+  <p class="empty-hint">Todavía no capturaste nada hoy.</p>
+  {% endif %}
+  {% for b in bullets %}
+  {% include "components/bullet.html" %}
+  {% endfor %}
+</div>

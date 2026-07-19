@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ label }} · wdigd{% endblock %}
+{% block content %}
+<div class="wk-page">
+  <header class="wk-header">
+    <div class="wk-kicker">Sesión semanal</div>
+    <h1 class="wk-title">{{ label }}</h1>
+    {% if closed %}
+    <div class="wk-closed-line">
+      Semana cerrada ·
+      <form method="post" action="/week/{{ iso }}/reopen" class="inline-form">
+        <button type="submit" class="link-accent">reabrir</button>
+      </form>
+    </div>
+    {% endif %}
+    <nav class="wk-nav">
+      <a href="/week/{{ prev_iso }}">← semana anterior</a>
+      {% if next_iso %}<a href="/week/{{ next_iso }}">semana siguiente →</a>{% endif %}
+    </nav>
+  </header>
+
+  {% include "components/week_material.html" %}
+
+  <section class="wk-section" id="journal">
+    <div class="wk-heading">
+      <div class="wk-num">4</div>
+      <h2>Journal semanal</h2>
+      <div class="wk-journal-sub">Tus sensaciones sobre: ritmo de trabajo diario, interacciones importantes y enfoque estratégico.</div>
+    </div>
+    {% if not closed %}
+    <textarea class="narrative-input" name="narrative" rows="9" placeholder="Una página en blanco."
+      hx-patch="/week/{{ iso }}" hx-trigger="keyup changed delay:700ms" hx-swap="none">{{ review.narrative }}</textarea>
+    {% else %}
+    <div class="narrative-ro">{{ review.narrative or "—" }}</div>
+    {% endif %}
+  </section>
+
+  <section class="wk-section" id="items">
+    <div class="wk-heading">
+      <div class="wk-num">5</div>
+      <h2>Preocupaciones y seguimientos</h2>
+    </div>
+    {% include "components/review_items.html" %}
+  </section>
+
+  <section class="wk-section" id="prioridades">
+    <div class="wk-heading">
+      <div class="wk-num">6</div>
+      <h2>Prioridades para la semana que viene</h2>
+      <p class="wk-sub">Una por línea. El lunes aparecen en la pantalla de captura.</p>
+    </div>
+    {% if not closed %}
+    <textarea class="priorities-input" name="priorities" rows="4" placeholder="Una prioridad por línea."
+      hx-patch="/week/{{ iso }}" hx-trigger="keyup changed delay:700ms" hx-swap="none">{{ review.priorities }}</textarea>
+    <form method="post" action="/week/{{ iso }}/close">
+      <button type="submit" class="button-primary">Cerrar la semana</button>
+    </form>
+    {% else %}
+    <div class="prio-chips">
+      {% for p in review.priorities.splitlines() if p.strip() %}
+      <span class="chip-prio">{{ p.strip().lstrip("-•*").strip() }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

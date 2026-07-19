@@ -1,0 +1,18 @@
+{% macro cat_chips(e, target, url_extra="") %}
+{%- for key, label in CATEGORIES %}
+<button type="button" class="chip{% if e.category == key %} chip-on{% endif %}"
+  onclick="event.stopPropagation()"
+  hx-patch="/entries/{{ e.id }}{{ url_extra }}"
+  hx-vals='{"category": "{{ "" if e.category == key else key }}"}'
+  hx-target="{{ target }}" hx-swap="outerHTML">{{ label }}</button>
+{%- endfor %}
+{% endmacro %}
+
+{% macro align_button(entry_id, label, target, url_extra="") %}
+<button type="button" class="align-btn{% if label %} has{% endif %}"
+  title="Alinear con una prioridad de la semana"
+  data-align-url="/entries/{{ entry_id }}/align{{ url_extra }}"
+  data-align-target="{{ target }}"
+  data-label="{{ label or '' }}"
+  onclick="event.stopPropagation(); wdigdCycleAlign(this)">{{ label or "alinear con prioridades" }}</button>
+{% endmacro %}

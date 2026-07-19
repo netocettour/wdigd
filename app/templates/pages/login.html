@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Entrar · wdigd{% endblock %}
+{% block topbar %}{% endblock %}
+{% block content %}
+<div class="auth">
+  <div class="auth-brand">wdigd</div>
+  <h1 class="auth-title">Entrá</h1>
+  {% if error %}<p class="form-error">{{ error }}</p>{% endif %}
+  <form method="post" action="/login" class="auth-form">
+    <label class="field">
+      <span class="field-label">Email</span>
+      <input type="email" name="email" value="{{ email }}" required autofocus autocomplete="email">
+    </label>
+    <label class="field">
+      <span class="field-label">Contraseña</span>
+      <input type="password" name="password" required autocomplete="current-password">
+    </label>
+    <button type="submit" class="button-primary">Entrar</button>
+  </form>
+  <p class="auth-alt">¿No tenés cuenta? <a href="/signup">Creá una</a></p>
+</div>
+{% endblock %}

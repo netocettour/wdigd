@@ -1,0 +1,6 @@
+<div class="bullet">
+  <form class="bullet-editform" hx-patch="/entries/{{ b.id }}" hx-target="closest .bullet" hx-swap="outerHTML">
+    <input name="text" value="{{ b.text }}" autofocus autocomplete="off">
+    <button type="submit" hidden></button>
+  </form>
+</div>

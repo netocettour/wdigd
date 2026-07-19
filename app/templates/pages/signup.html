@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Crear cuenta · wdigd{% endblock %}
+{% block topbar %}{% endblock %}
+{% block content %}
+<div class="auth">
+  <div class="auth-brand">wdigd</div>
+  <h1 class="auth-title">Creá tu cuenta</h1>
+  {% if error %}<p class="form-error">{{ error }}</p>{% endif %}
+  <form method="post" action="/signup" class="auth-form">
+    <label class="field">
+      <span class="field-label">Email</span>
+      <input type="email" name="email" value="{{ email }}" required autofocus autocomplete="email">
+    </label>
+    <label class="field">
+      <span class="field-label">Contraseña</span>
+      <input type="password" name="password" required minlength="8" autocomplete="new-password">
+      <span class="field-hint">Al menos 8 caracteres.</span>
+    </label>
+    <button type="submit" class="button-primary">Crear cuenta</button>
+  </form>
+  <p class="auth-alt">¿Ya tenés cuenta? <a href="/login">Entrá</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&amp;family=Work+Sans:ital,wght@0,300..700;1,300..700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#e9e2d3} a{color:#a8552f} a:hover{color:#8f4426}</style>
+</helmet>
+<section style="padding:48px 56px 80px; display:flex; flex-direction:column; gap:44px; font-family:'Work Sans',sans-serif; color:#2c2620;">
+  <header style="display:flex; align-items:baseline; gap:24px; flex-wrap:wrap;">
+    <div style="display:flex; flex-direction:column; gap:4px;">
+      <h1 style="margin:0; font-family:'Literata',serif; font-weight:500; font-size:26px;">wdigd — prototipo</h1>
+      <div style="font-size:13px; color:#8a7f70;">Captura diaria y sesión semanal · voseo · los números nunca juzgan</div>
+    </div>
+    <button onClick="{{ toggle }}" style="font-family:inherit; font-size:13px; padding:8px 16px; border-radius:999px; border:1px solid #cfc4ae; background:#f6f1e8; color:#5c5346; cursor:pointer;">{{ toggleLabel }}</button>
+  </header>
+  <div style="color-scheme: {{ scheme }}; display:flex; flex-direction:column; gap:44px;">
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div style="font-family:ui-monospace,monospace; font-size:12px; letter-spacing:0.08em; color:#7c7060;">/today — captura diaria</div>
+      <div style="display:flex; gap:36px; flex-wrap:wrap; align-items:flex-start;">
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-family:ui-monospace,monospace; font-size:11px; color:#93887a;">móvil · día vacío</div>
+          <div style="width:390px; height:740px; overflow-y:auto; border-radius:14px; border:1px solid #d3c8b3; background:light-dark(#f6f1e8,#211d17); box-shadow:0 2px 12px rgba(60,50,35,0.08);">
+            <dc-import name="Today" variant="empty" mode="{{ mode }}" hint-size="390px,740px"></dc-import>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-family:ui-monospace,monospace; font-size:11px; color:#93887a;">móvil · día con bullets</div>
+          <div style="width:390px; height:740px; overflow-y:auto; border-radius:14px; border:1px solid #d3c8b3; background:light-dark(#f6f1e8,#211d17); box-shadow:0 2px 12px rgba(60,50,35,0.08);">
+            <dc-import name="Today" variant="filled" mode="{{ mode }}" hint-size="390px,740px"></dc-import>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-family:ui-monospace,monospace; font-size:11px; color:#93887a;">desktop · misma estructura, más aire</div>
+          <div style="width:860px; height:740px; overflow-y:auto; border-radius:14px; border:1px solid #d3c8b3; background:light-dark(#f6f1e8,#211d17); box-shadow:0 2px 12px rgba(60,50,35,0.08);">
+            <dc-import name="Today" variant="filled" mode="{{ mode }}" hint-size="860px,740px"></dc-import>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div style="font-family:ui-monospace,monospace; font-size:12px; letter-spacing:0.08em; color:#7c7060;">/week — sesión semanal</div>
+      <div style="display:flex; gap:36px; flex-wrap:wrap; align-items:flex-start;">
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-family:ui-monospace,monospace; font-size:11px; color:#93887a;">desktop · sesión en curso — tocá bullets y promovelos</div>
+          <div style="width:1060px; height:880px; overflow-y:auto; border-radius:14px; border:1px solid #d3c8b3; background:light-dark(#f6f1e8,#211d17); box-shadow:0 2px 12px rgba(60,50,35,0.08);">
+            <dc-import name="Week" variant="curso" mode="{{ mode }}" hint-size="1060px,880px"></dc-import>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-family:ui-monospace,monospace; font-size:11px; color:#93887a;">móvil · semana con pocos datos (2 días)</div>
+          <div style="width:390px; height:880px; overflow-y:auto; border-radius:14px; border:1px solid #d3c8b3; background:light-dark(#f6f1e8,#211d17); box-shadow:0 2px 12px rgba(60,50,35,0.08);">
+            <dc-import name="Week" variant="pocos" mode="{{ mode }}" hint-size="390px,880px"></dc-import>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="font-family:ui-monospace,monospace; font-size:11px; color:#93887a;">desktop · semana cerrada (modo lectura)</div>
+          <div style="width:1060px; height:880px; overflow-y:auto; border-radius:14px; border:1px solid #d3c8b3; background:light-dark(#f6f1e8,#211d17); box-shadow:0 2px 12px rgba(60,50,35,0.08);">
+            <dc-import name="Week" variant="cerrada" mode="{{ mode }}" hint-size="1060px,880px"></dc-import>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = {};
+  renderVals() {
+    const mode = this.state.mode ?? this.props.mode ?? 'light';
+    return {
+      mode,
+      scheme: mode === 'dark' ? 'only dark' : 'only light',
+      toggle: () => this.setState({ mode: mode === 'dark' ? 'light' : 'dark' }),
+      toggleLabel: mode === 'dark' ? 'Ver en modo claro' : 'Ver en modo oscuro',
+    };
+  }
+}
+</script>
+</body>
+</html>

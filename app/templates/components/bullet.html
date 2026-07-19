@@ -1,0 +1,15 @@
+{% import "components/macros.html" as m %}
+<div class="bullet">
+  <div class="bullet-line">
+    <span class="bullet-dash">—</span>
+    <span class="bullet-text" hx-get="/entries/{{ b.id }}/edit" hx-target="closest .bullet" hx-swap="outerHTML" title="Tocá para editar">{{ b.text }}</span>
+    <button type="button" class="bullet-x" hx-delete="/entries/{{ b.id }}" hx-target="closest .bullet" hx-swap="outerHTML" title="Eliminar">×</button>
+  </div>
+  <div class="bullet-meta">
+    {{ m.cat_chips(b, "closest .bullet") }}
+    {% if can_align %}
+    <span class="meta-sep"></span>
+    {{ m.align_button(b.id, b.priority_label, "closest .bullet") }}
+    {% endif %}
+  </div>
+</div>
