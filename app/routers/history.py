@@ -8,7 +8,7 @@ from app.db import get_db
 from app.deps import get_current_user
 from app.models import Entry, User, WeeklyReview
 from app.templating import templates
-from app.weeks import iso_week_str, user_today, week_label, week_monday
+from app.weeks import iso_week_str, parse_priorities, user_today, week_label, week_monday
 
 router = APIRouter()
 
@@ -59,6 +59,7 @@ def history(
             status = "cerrada"
         else:
             status = "sin cerrar"
+        priorities = parse_priorities(review.priorities) if review else []
         weeks.append(
             {
                 "iso": iso_week_str(monday),
@@ -67,6 +68,7 @@ def history(
                 "status": status,
                 "count": count,
                 "is_current": monday == current_monday,
+                "priorities": priorities,
             }
         )
         monday -= timedelta(days=7)

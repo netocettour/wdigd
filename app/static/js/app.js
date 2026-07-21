@@ -1,3 +1,16 @@
+// Toggle dark/light mode
+
+function wdigdToggleTheme() {
+  var current = document.documentElement.style.colorScheme;
+  var next = current === "dark" ? "light" : current === "light" ? "" : "dark";
+  document.documentElement.style.colorScheme = next;
+  if (next) {
+    document.cookie = "theme=" + next + ";path=/;max-age=31536000;SameSite=Lax";
+  } else {
+    document.cookie = "theme=;path=/;max-age=0";
+  }
+}
+
 // Alinear un bullet con una prioridad de la semana.
 //
 // Cada tap cicla la etiqueta EN EL LUGAR (el bullet no se mueve) mostrando la
