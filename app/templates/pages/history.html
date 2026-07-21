@@ -15,6 +15,11 @@
       <span>{{ w.count }} {{ "bullet" if w.count == 1 else "bullets" }}</span>
       <span class="hist-status">{{ w.status }}</span>
     </div>
+    {% if w.priorities %}
+    <div class="prio-chips" style="padding: 4px 0 0;">
+      {% for p in w.priorities %}<span class="chip-prio" style="font-size: 12.5px; padding: 2px 10px;">{{ p }}</span>{% endfor %}
+    </div>
+    {% endif %}
   </a>
   {% endfor %}
 </div>

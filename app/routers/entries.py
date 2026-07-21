@@ -14,6 +14,19 @@ from app.weeks import user_today
 
 router = APIRouter()
 
+QUICK_COMMANDS = {
+    "/l": "logro",
+    "/a": "avance",
+    "/d": "desbloqueo",
+}
+
+
+def _parse_quick_command(text: str) -> tuple[str, str | None]:
+    for prefix, category in QUICK_COMMANDS.items():
+        if text.lower().startswith(prefix + " "):
+            return text[len(prefix):].strip(), category
+    return text, None
+
 
 def _own_entry(db: Session, user: User, entry_id: int) -> Entry:
     entry = db.get(Entry, entry_id)
@@ -65,7 +78,8 @@ async def create_entry(
     form = await request.form()
     text = str(form.get("text", "")).strip()
     if text:
-        category = str(form.get("category", "")) or None
+        text, quick_cat = _parse_quick_command(text)
+        category = quick_cat or str(form.get("category", "")) or None
         if category not in CATEGORY_VALUES:
             category = None
         entry_date = user_today(user)
