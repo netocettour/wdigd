@@ -22,9 +22,12 @@ QUICK_COMMANDS = {
 
 
 def _parse_quick_command(text: str) -> tuple[str, str | None]:
-    for prefix, category in QUICK_COMMANDS.items():
-        if text.lower().startswith(prefix + " "):
-            return text[len(prefix):].strip(), category
+    lower = text.lower()
+    for cmd, category in QUICK_COMMANDS.items():
+        if lower.startswith(cmd + " "):
+            return text[len(cmd):].strip(), category
+        if lower.endswith(" " + cmd):
+            return text[:-len(cmd)].strip(), category
     return text, None
 
 

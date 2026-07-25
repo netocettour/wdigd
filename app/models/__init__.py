@@ -12,6 +12,7 @@ from app.models.review import (
     WeeklyReview,
     achievement_entries,
 )
+from app.models.daily_note import DailyNote
 
 __all__ = [
     "User",
@@ -24,4 +25,5 @@ __all__ = [
     "ReviewItem",
     "achievement_entries",
     "REVIEW_ITEM_KINDS",
+    "DailyNote",
 ]

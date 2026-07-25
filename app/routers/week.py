@@ -203,8 +203,18 @@ def _items_response(request: Request, db: Session, user: User, iso: str):
 
 
 @router.get("/week")
-def week_index(user: User = Depends(get_current_user)):
-    return RedirectResponse(f"/week/{iso_week_str(user_today(user))}", status_code=303)
+def week_index(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    hoy = user_today(user)
+    current_iso = iso_week_str(hoy)
+    iso = hoy.isocalendar()
+    prev_year, prev_week = prev_iso(iso.year, iso.week)
+    prev_review = get_review(db, user, prev_year, prev_week)
+    if prev_review is not None and prev_review.closed_at is None:
+        return RedirectResponse(f"/week/{prev_year}-W{prev_week:02d}", status_code=303)
+    return RedirectResponse(f"/week/{current_iso}", status_code=303)
 
 
 @router.get("/week/{iso_week}")
