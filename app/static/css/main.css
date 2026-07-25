@@ -412,6 +412,43 @@ input:focus {
   font-size: 16px;
 }
 
+/* Nota del día */
+
+.daily-note {
+  margin-top: 28px;
+}
+
+.daily-note-label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.daily-note-input {
+  width: 100%;
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.65;
+  padding: 14px 16px;
+  border: 1px solid var(--input-border);
+  border-radius: 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  resize: vertical;
+}
+
+.daily-note-input:focus {
+  outline: none;
+  border-color: var(--input-border-focus);
+}
+
+.daily-note-input::placeholder {
+  color: var(--muted);
+}
+
 /* Antes esta semana */
 
 .prev-days {

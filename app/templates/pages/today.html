@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Hoy · wdigd{% endblock %}
 {% block content %}
+<script>
+(function(){
+  var loaded = "{{ today_iso }}";
+  function check(){ if(new Date().toLocaleDateString("sv-SE")!==loaded) location.reload(); }
+  var ms = new Date(loaded+"T00:00:00");
+  ms.setDate(ms.getDate()+1);
+  ms = ms - Date.now();
+  if(ms > 0) setTimeout(check, ms + 500);
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) check(); });
+})();
+</script>
 {% if prioridades %}
 <details class="prio-block" open>
   <summary>Prioridades de la semana</summary>
@@ -22,6 +33,13 @@
 </form>
 
 {% include "components/bullets_today.html" %}
+
+<div class="daily-note">
+  <label class="daily-note-label" for="daily-note">¿Qué te gustaría recordar del día de hoy?</label>
+  <textarea id="daily-note" class="daily-note-input" name="text" rows="3"
+    hx-patch="/today/note" hx-trigger="keyup changed delay:700ms" hx-swap="none"
+    placeholder="Algo que quieras anotar...">{{ note }}</textarea>
+</div>
 
 {% if prev_days %}
 <div class="prev-days">
