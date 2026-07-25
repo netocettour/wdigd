@@ -449,6 +449,70 @@ input:focus {
   color: var(--muted);
 }
 
+.daily-note-input:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Cerrar el día */
+
+.day-close-action {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.day-close-btn {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  padding: 10px 28px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.day-close-btn:hover {
+  color: var(--text);
+  border-color: var(--input-border-focus);
+}
+
+.day-closed {
+  margin-top: 24px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.day-closed-text {
+  font-family: var(--serif);
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.day-closed-form {
+  display: inline;
+}
+
+.day-reopen-link {
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--muted-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 0;
+}
+
+.day-reopen-link:hover {
+  color: var(--text-soft);
+}
+
 /* Antes esta semana */
 
 .prev-days {

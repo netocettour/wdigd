@@ -26,11 +26,13 @@
   <h1 class="day-title">¿Qué lograste hoy?</h1>
 </header>
 
+{% if not closed %}
 <form class="capture-form" hx-post="/entries" hx-target="#today-bullets" hx-swap="outerHTML"
   hx-on::after-request="if(event.detail.successful) this.reset()">
   <input name="text" placeholder="Un bullet por vez · Enter agrega" autocomplete="off" autofocus>
   <button type="submit" hidden></button>
 </form>
+{% endif %}
 
 {% include "components/bullets_today.html" %}
 
@@ -38,8 +40,23 @@
   <label class="daily-note-label" for="daily-note">¿Qué te gustaría recordar del día de hoy?</label>
   <textarea id="daily-note" class="daily-note-input" name="text" rows="3"
     hx-patch="/today/note" hx-trigger="keyup changed delay:700ms" hx-swap="none"
-    placeholder="Algo que quieras anotar...">{{ note }}</textarea>
+    placeholder="Algo que quieras anotar..."{% if closed %} disabled{% endif %}>{{ note }}</textarea>
 </div>
+
+{% if closed %}
+<div class="day-closed">
+  <span class="day-closed-text">Día cerrado</span>
+  <form method="post" action="/today/reopen" class="day-closed-form">
+    <button type="submit" class="day-reopen-link">Reabrir</button>
+  </form>
+</div>
+{% else %}
+<div class="day-close-action">
+  <form method="post" action="/today/close">
+    <button type="submit" class="day-close-btn">Cerrar el día</button>
+  </form>
+</div>
+{% endif %}
 
 {% if prev_days %}
 <div class="prev-days">

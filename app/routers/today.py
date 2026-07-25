@@ -1,5 +1,7 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import Response
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -68,8 +70,21 @@ def today(
             "prioridades": prioridades,
             "can_align": bool(prioridades),
             "note": note.text if note else "",
+            "closed": note is not None and note.closed_at is not None,
         },
     )
+
+
+def _get_or_create_note(db: Session, user: User) -> DailyNote:
+    hoy = user_today(user)
+    note = db.execute(
+        select(DailyNote).where(DailyNote.user_id == user.id, DailyNote.note_date == hoy)
+    ).scalar_one_or_none()
+    if note is None:
+        note = DailyNote(user_id=user.id, note_date=hoy)
+        db.add(note)
+        db.flush()
+    return note
 
 
 @router.patch("/today/note")
@@ -91,3 +106,25 @@ async def save_daily_note(
         note.text = text
     db.commit()
     return Response(status_code=204)
+
+
+@router.post("/today/close")
+def close_day(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    note = _get_or_create_note(db, user)
+    note.closed_at = datetime.now(timezone.utc)
+    db.commit()
+    return RedirectResponse("/today", status_code=303)
+
+
+@router.post("/today/reopen")
+def reopen_day(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    note = _get_or_create_note(db, user)
+    note.closed_at = None
+    db.commit()
+    return RedirectResponse("/today", status_code=303)
