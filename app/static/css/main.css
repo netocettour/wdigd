@@ -602,7 +602,8 @@ input:focus {
   letter-spacing: -0.01em;
 }
 
-.wk-name-input {
+/* input.* para ganarle a la regla global de inputs (misma especificidad, más abajo). */
+input.wk-name-input {
   width: 100%;
   max-width: 460px;
   font-family: var(--serif);
@@ -616,17 +617,18 @@ input:focus {
   outline: none;
 }
 
-.wk-name-input::placeholder {
+input.wk-name-input::placeholder {
   color: var(--muted-2);
   opacity: 0.75;
 }
 
-.wk-name-input:hover {
+input.wk-name-input:hover {
   border-bottom-color: var(--border-soft);
 }
 
-.wk-name-input:focus {
+input.wk-name-input:focus {
   color: var(--text);
+  border-color: transparent;
   border-bottom-color: var(--input-border-focus);
 }
 
@@ -929,11 +931,11 @@ input.ach-input {
   color: var(--accent);
 }
 
-.prio-input {
+input.prio-input {
   width: 100%;
   font-family: var(--serif);
   font-size: 16px;
-  padding: 11px 15px;
+  padding: 12px 15px;
   border-radius: 10px;
   border: 1px solid var(--input-border);
   background: var(--input-bg);
@@ -941,7 +943,7 @@ input.ach-input {
   outline: none;
 }
 
-.prio-input:focus {
+input.prio-input:focus {
   border-color: var(--input-border-focus);
 }
 
