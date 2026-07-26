@@ -69,6 +69,7 @@ def history(
                 "count": count,
                 "is_current": monday == current_monday,
                 "priorities": priorities,
+                "name": review.name if review else "",
             }
         )
         monday -= timedelta(days=7)

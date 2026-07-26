@@ -35,6 +35,8 @@ class WeeklyReview(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     iso_year: Mapped[int] = mapped_column(Integer, nullable=False)
     iso_week: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Nombre opcional de la semana: una etiqueta para reconocerla en /history.
+    name: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
     narrative: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
     priorities: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
     closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -54,6 +56,9 @@ class Achievement(Base):
 
 
 class ReviewItem(Base):
+    """Legado: "Preocupaciones y seguimientos" se sacó de /week. El modelo y la
+    tabla quedan para no perder lo ya escrito; nada de la app los usa."""
+
     __tablename__ = "review_items"
 
     id: Mapped[int] = mapped_column(primary_key=True)

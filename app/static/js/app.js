@@ -1,3 +1,23 @@
+// Capture textarea: auto-grow + Enter to submit, Shift+Enter for new line
+document.addEventListener("keydown", function (e) {
+  if (e.target.tagName !== "TEXTAREA" || !e.target.closest(".capture-form")) return;
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    e.target.closest("form").requestSubmit();
+  }
+});
+document.addEventListener("input", function (e) {
+  if (e.target.tagName !== "TEXTAREA") return;
+  if (!e.target.closest(".capture-form") && !e.target.classList.contains("capture-form-grow")) return;
+  e.target.style.height = "auto";
+  e.target.style.height = e.target.scrollHeight + "px";
+});
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll("textarea.capture-form-grow").forEach(function (el) {
+    if (el.value) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
+  });
+});
+
 // Toggle dark/light mode
 
 function wdigdToggleTheme() {
@@ -8,6 +28,64 @@ function wdigdToggleTheme() {
     document.cookie = "theme=" + next + ";path=/;max-age=31536000;SameSite=Lax";
   } else {
     document.cookie = "theme=;path=/;max-age=0";
+  }
+}
+
+// Prioridades de la semana que viene: chips.
+//
+// El almacenamiento sigue siendo texto, una prioridad por línea; acá se arma esa
+// lista a partir de los chips y se manda entera en cada cambio.
+
+function wdigdSavePriorities(editor) {
+  const chips = editor.querySelectorAll(".chip-edit");
+  const text = Array.from(chips).map(function (c) { return c.dataset.text; }).join("\n");
+  if (typeof htmx === "undefined") return;
+  htmx.ajax("PATCH", editor.dataset.url, { values: { priorities: text }, swap: "none" });
+}
+
+function wdigdRemovePriority(btn) {
+  const editor = btn.closest(".prio-editor");
+  btn.closest(".chip-edit").remove();
+  wdigdSavePriorities(editor);
+  const input = editor.querySelector(".prio-input");
+  if (input) input.focus();
+}
+
+function wdigdPriorityKey(e, input) {
+  const editor = input.closest(".prio-editor");
+  const chips = editor.querySelector(".prio-chips");
+
+  if (e.key === "Enter") {
+    e.preventDefault();
+    const text = input.value.trim().replace(/^[-•*]\s*/, "").trim();
+    input.value = "";
+    if (!text) return;
+    const existing = Array.from(chips.querySelectorAll(".chip-edit"));
+    // Dos prioridades con el mismo texto vuelven ambiguo el botón "alinear".
+    if (existing.some(function (c) { return c.dataset.text.toLowerCase() === text.toLowerCase(); })) return;
+
+    const chip = document.createElement("span");
+    chip.className = "chip-prio chip-edit";
+    chip.dataset.text = text;
+    chip.textContent = text;
+    const x = document.createElement("button");
+    x.type = "button";
+    x.className = "chip-x";
+    x.title = "Quitar";
+    x.setAttribute("onclick", "wdigdRemovePriority(this)");
+    x.textContent = "×";
+    chip.appendChild(x);
+    chips.appendChild(chip);
+    wdigdSavePriorities(editor);
+    return;
+  }
+
+  if (e.key === "Backspace" && input.value === "") {
+    const last = chips.querySelector(".chip-edit:last-child");
+    if (!last) return;
+    e.preventDefault();
+    last.remove();
+    wdigdSavePriorities(editor);
   }
 }
 

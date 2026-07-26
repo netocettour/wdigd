@@ -3,11 +3,9 @@
 Cuatro semanas hacia atrás (offsets 3..0):
 - W-3: entries + review CERRADA (fija las prioridades que rigen W-2).
 - W-2: entries alineados a esas prioridades + review CERRADA completa
-       (highlights, journal, preocupaciones/seguimientos). Es la semana rica.
+       (highlights, journal). Es la semana rica.
 - W-1: entries alineados + review A MEDIAS (sin cerrar).
 - W0 (actual): entries hasta hoy, sin review.
-
-Las preocupaciones se repiten entre semanas para mostrar la nota de recurrencia.
 
 Uso: python seed.py  →  usuario demo@wdigd.local / contraseña demo1234
 """
@@ -34,8 +32,6 @@ TZ = "America/Argentina/Cordoba"
 
 PRIOS_A = ["Cerrar quarter comercial", "Evaluación del equipo", "Mañanas para plataforma"]
 PRIOS_B = ["Cerrar etapa plataforma", "Firmar con Brasil", "Mañanas para plataforma"]
-
-PREO_RECURRENTE = "No quiero subestimar el costo de la decisión de la plataforma."
 
 # (día 0=lun..6=dom, texto, categoría, prioridad-alineada|None)
 WEEK_MINUS_3 = [
@@ -131,18 +127,13 @@ def main() -> None:
             user_id=user.id,
             iso_year=y3,
             iso_week=w3,
+            name="Arranque del trimestre",
             narrative="Semana de arranque del trimestre.",
             priorities="\n".join(PRIOS_A),
             closed_at=datetime.now(dt_timezone.utc) - timedelta(days=20),
         )
         db.add(r3)
         db.flush()
-        db.add(
-            ReviewItem(
-                user_id=user.id, weekly_review_id=r3.id, kind="preocupacion",
-                text=PREO_RECURRENTE, position=1,
-            )
-        )
 
         # W-2: review cerrada completa (la semana rica).
         y2, w2 = iso_of(2)
@@ -150,6 +141,7 @@ def main() -> None:
             user_id=user.id,
             iso_year=y2,
             iso_week=w2,
+            name="La semana de Luis",
             narrative=(
                 "Fue una semana de cerrar cosas que venían abiertas hace rato. "
                 "Lo de Luis salió mejor de lo que esperaba: la conversación difícil "
@@ -178,20 +170,8 @@ def main() -> None:
             if entry is not None:
                 ach.entries.append(entry)
             db.add(ach)
-        db.add_all(
-            [
-                ReviewItem(
-                    user_id=user.id, weekly_review_id=r2.id, kind="preocupacion",
-                    text=PREO_RECURRENTE, position=1,
-                ),
-                ReviewItem(
-                    user_id=user.id, weekly_review_id=r2.id, kind="seguimiento",
-                    text="El proveedor no parece serio; el deal permite salirnos.", position=1,
-                ),
-            ]
-        )
 
-        # W-1: review a medias, sin cerrar. Repite la preocupación (recurrencia).
+        # W-1: review a medias, sin cerrar.
         y1, w1 = iso_of(1)
         r1 = WeeklyReview(
             user_id=user.id,
@@ -203,18 +183,6 @@ def main() -> None:
         )
         db.add(r1)
         db.flush()
-        db.add_all(
-            [
-                ReviewItem(
-                    user_id=user.id, weekly_review_id=r1.id, kind="preocupacion",
-                    text=PREO_RECURRENTE, position=1,
-                ),
-                ReviewItem(
-                    user_id=user.id, weekly_review_id=r1.id, kind="seguimiento",
-                    text="Presupuesto de Socios: falta la firma final.", position=1,
-                ),
-            ]
-        )
 
         db.commit()
         print(f"Seed listo: {EMAIL} / {PASSWORD}")
