@@ -1,13 +1,16 @@
 {% extends "base.html" %}
-{% block title %}{{ label }} · wdigd{% endblock %}
+{% block title %}{{ review.name or label }} · wdigd{% endblock %}
 {% block content %}
 <div class="wk-page">
   <header class="wk-header">
     <div class="wk-kicker">Sesión semanal</div>
-    <h1 class="wk-title">{{ label }}</h1>
-    <input class="wk-name-input" name="name" value="{{ review.name }}" autocomplete="off"
-      placeholder="Ponerle un nombre a esta semana (opcional)"
-      hx-patch="/week/{{ iso }}" hx-trigger="keyup changed delay:700ms, change" hx-swap="none">
+    <h1 class="wk-title">
+      <textarea class="wk-title-input js-autogrow" name="name" rows="1" autocomplete="off"
+        placeholder="{{ label }}" aria-label="Nombre de la semana" title="Clic para renombrar la semana"
+        oninput="wdigdWeekTitle(this)"
+        hx-patch="/week/{{ iso }}" hx-trigger="keyup changed delay:700ms, change" hx-swap="none">{{ review.name }}</textarea>
+    </h1>
+    <div class="wk-title-sub"{% if not review.name %} hidden{% endif %}>{{ label }}</div>
     {% if closed %}
     <div class="wk-closed-line">
       Semana cerrada ·
@@ -31,7 +34,7 @@
       <div class="wk-journal-sub">Tus sensaciones sobre: ritmo de trabajo diario, interacciones importantes y enfoque estratégico.</div>
     </div>
     {% if not closed %}
-    <textarea class="narrative-input capture-form-grow" name="narrative" rows="5" placeholder="Una página en blanco."
+    <textarea class="narrative-input js-autolist js-autogrow" name="narrative" rows="5" placeholder="Una página en blanco."
       hx-patch="/week/{{ iso }}" hx-trigger="keyup changed delay:700ms" hx-swap="none">{{ review.narrative }}</textarea>
     {% else %}
     <div class="narrative-ro">{{ (review.narrative or "—")|narrative }}</div>

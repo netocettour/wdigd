@@ -28,8 +28,8 @@
 
 {% if not closed %}
 <form class="capture-form" hx-post="/entries" hx-target="#today-bullets" hx-swap="outerHTML"
-  hx-on::after-request="if(event.detail.successful){ var t=this.querySelector('textarea'); t.value=''; t.style.height='auto'; }">
-  <textarea name="text" rows="1" placeholder="Un bullet por vez · Shift+Enter nueva línea" autocomplete="off" autofocus></textarea>
+  hx-on::after-request="if(event.detail.successful) this.reset()">
+  <input name="text" placeholder="Un bullet por vez · Enter agrega" autocomplete="off" autofocus>
   <button type="submit" hidden></button>
 </form>
 {% endif %}
@@ -38,9 +38,9 @@
 
 <div class="daily-note">
   <label class="daily-note-label" for="daily-note">¿Qué te gustaría recordar del día de hoy?</label>
-  <textarea id="daily-note" class="daily-note-input" name="text" rows="3"
+  <textarea id="daily-note" class="daily-note-input js-autolist js-autogrow" name="text" rows="3"
     hx-patch="/today/note" hx-trigger="keyup changed delay:700ms" hx-swap="none"
-    placeholder="Algo que quieras anotar..."{% if closed %} disabled{% endif %}>{{ note }}</textarea>
+    placeholder="Algo que quieras anotar... (* para una lista)"{% if closed %} disabled{% endif %}>{{ note }}</textarea>
 </div>
 
 {% if closed %}

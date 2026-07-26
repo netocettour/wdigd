@@ -297,7 +297,7 @@ input:focus {
   margin-top: 4px;
 }
 
-.capture-form textarea {
+.capture-form input {
   width: 100%;
   font-family: var(--sans);
   font-size: 16px;
@@ -307,12 +307,10 @@ input:focus {
   background: var(--input-bg);
   color: inherit;
   outline: none;
-  resize: none;
-  overflow: hidden;
   line-height: 1.5;
 }
 
-.capture-form textarea:focus {
+.capture-form input:focus {
   border-color: var(--input-border-focus);
 }
 
@@ -602,34 +600,40 @@ input:focus {
   letter-spacing: -0.01em;
 }
 
-/* input.* para ganarle a la regla global de inputs (misma especificidad, más abajo). */
-input.wk-name-input {
+/* El título se edita en el lugar. Es un textarea (no un input) para que el nombre
+   largo envuelva igual que un h1 en pantallas chicas. */
+textarea.wk-title-input {
+  display: block;
   width: 100%;
-  max-width: 460px;
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 16px;
-  color: var(--muted);
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
   background: none;
   border: none;
   border-bottom: 1px solid transparent;
-  padding: 2px 0;
+  border-radius: 0;
+  padding: 0 0 2px;
   outline: none;
+  resize: none;
+  overflow: hidden;
 }
 
-input.wk-name-input::placeholder {
-  color: var(--muted-2);
-  opacity: 0.75;
+textarea.wk-title-input::placeholder {
+  color: inherit;
+  opacity: 1;
 }
 
-input.wk-name-input:hover {
+textarea.wk-title-input:hover {
   border-bottom-color: var(--border-soft);
 }
 
-input.wk-name-input:focus {
-  color: var(--text);
-  border-color: transparent;
+textarea.wk-title-input:focus {
   border-bottom-color: var(--input-border-focus);
+}
+
+.wk-title-sub {
+  font-size: 14px;
+  color: var(--muted);
 }
 
 .wk-closed-line {
