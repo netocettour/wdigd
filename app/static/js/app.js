@@ -1,21 +1,129 @@
-// Capture textarea: auto-grow + Enter to submit, Shift+Enter for new line
-document.addEventListener("keydown", function (e) {
-  if (e.target.tagName !== "TEXTAREA" || !e.target.closest(".capture-form")) return;
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    e.target.closest("form").requestSubmit();
+// Textareas que crecen con el texto en lugar de scrollear.
+
+function wdigdGrow(el) {
+  // El placeholder no cuenta para scrollHeight: si el campo está vacío se mide con
+  // el placeholder puesto, para que un placeholder de dos líneas no quede cortado.
+  var placeholding = !el.value && el.placeholder;
+  if (placeholding) el.value = el.placeholder;
+  el.style.height = "auto";
+  // scrollHeight no incluye los bordes: con box-sizing: border-box hay que sumarlos
+  // o queda un scroll de un par de píxeles.
+  var cs = getComputedStyle(el);
+  var extra =
+    cs.boxSizing === "border-box"
+      ? parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth)
+      : 0;
+  el.style.height = el.scrollHeight + extra + "px";
+  if (placeholding) el.value = "";
+}
+
+document.addEventListener("input", function (e) {
+  if (e.target.tagName === "TEXTAREA" && e.target.classList.contains("js-autogrow")) {
+    wdigdGrow(e.target);
   }
 });
-document.addEventListener("input", function (e) {
-  if (e.target.tagName !== "TEXTAREA") return;
-  if (!e.target.closest(".capture-form") && !e.target.classList.contains("capture-form-grow")) return;
-  e.target.style.height = "auto";
-  e.target.style.height = e.target.scrollHeight + "px";
-});
 document.addEventListener("DOMContentLoaded", function () {
-  document.querySelectorAll("textarea.capture-form-grow").forEach(function (el) {
-    if (el.value) { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; }
-  });
+  document.querySelectorAll("textarea.js-autogrow").forEach(wdigdGrow);
+});
+window.addEventListener("resize", function () {
+  document.querySelectorAll("textarea.js-autogrow").forEach(wdigdGrow);
+});
+
+// Auto-formateo de listas mientras se escribe (journal semanal y nota del día).
+//
+// "* " o "- " al principio de una línea se vuelven "• " en el acto. Enter continúa
+// la lista (viñeta o número siguiente) y Enter sobre un ítem vacío la corta.
+// Lo que se guarda es texto plano: el filtro `narrative` ya entiende •, *, - y "1.".
+
+var wdigdAutolistBusy = false;
+
+// Reemplaza un rango usando execCommand para no romper el undo del navegador.
+function wdigdReplaceRange(el, start, end, text) {
+  el.focus();
+  el.setSelectionRange(start, end);
+  var ok = false;
+  try {
+    ok = text
+      ? document.execCommand("insertText", false, text)
+      : start !== end && document.execCommand("delete");
+  } catch (err) {
+    ok = false;
+  }
+  if (!ok) {
+    el.setRangeText(text, start, end, "end");
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+}
+
+function wdigdAutolistTarget(e) {
+  var el = e.target;
+  if (wdigdAutolistBusy) return null;
+  if (el.tagName !== "TEXTAREA" || !el.classList.contains("js-autolist")) return null;
+  if (el.selectionStart !== el.selectionEnd) return null;
+  return el;
+}
+
+function wdigdLineStart(value, pos) {
+  return value.lastIndexOf("\n", pos - 1) + 1;
+}
+
+document.addEventListener("input", function (e) {
+  var el = wdigdAutolistTarget(e);
+  if (!el) return;
+  var pos = el.selectionStart;
+  var start = wdigdLineStart(el.value, pos);
+  var m = /^([ \t]*)[*-] $/.exec(el.value.slice(start, pos));
+  if (!m) return;
+  wdigdAutolistBusy = true;
+  wdigdReplaceRange(el, start + m[1].length, pos, "• ");
+  wdigdAutolistBusy = false;
+});
+
+document.addEventListener("keydown", function (e) {
+  if (e.key !== "Enter" || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+  var el = wdigdAutolistTarget(e);
+  if (!el) return;
+
+  var pos = el.selectionStart;
+  var start = wdigdLineStart(el.value, pos);
+  var end = el.value.indexOf("\n", pos);
+  if (end === -1) end = el.value.length;
+  var line = el.value.slice(start, end);
+
+  var ul = /^([ \t]*)[•*-][ \t]+/.exec(line);
+  var ol = ul ? null : /^([ \t]*)(\d+)([.)])[ \t]+/.exec(line);
+  if (!ul && !ol) return;
+
+  e.preventDefault();
+  wdigdAutolistBusy = true;
+  var marker = (ul || ol)[0];
+  if (!line.slice(marker.length).trim()) {
+    // Ítem vacío: se sale de la lista en vez de agregar otra viñeta.
+    wdigdReplaceRange(el, start, end, "");
+  } else {
+    var next = ul
+      ? ul[1] + "• "
+      : ol[1] + (parseInt(ol[2], 10) + 1) + ol[3] + " ";
+    wdigdReplaceRange(el, pos, pos, "\n" + next);
+  }
+  wdigdAutolistBusy = false;
+});
+
+// El H1 de /week es el nombre de la semana. Sin nombre muestra el rango de fechas
+// como placeholder; con nombre, el rango baja a la línea de abajo.
+
+function wdigdWeekTitle(el) {
+  var sub = document.querySelector(".wk-title-sub");
+  if (sub) sub.hidden = !el.value.trim();
+}
+
+// Es un textarea sólo para que envuelva: Enter cierra la edición, no agrega líneas.
+document.addEventListener("keydown", function (e) {
+  if (!e.target.classList || !e.target.classList.contains("wk-title-input")) return;
+  if (e.key === "Enter") {
+    e.preventDefault();
+    e.target.blur();
+  }
 });
 
 // Toggle dark/light mode
