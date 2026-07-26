@@ -11,6 +11,7 @@
       <span class="hist-label">{{ w.label }}{% if w.is_current %} · en curso{% endif %}</span>
       <span class="hist-year">{{ w.year }}</span>
     </div>
+    {% if w.name %}<div class="hist-name">{{ w.name }}</div>{% endif %}
     <div class="hist-meta">
       <span>{{ w.count }} {{ "bullet" if w.count == 1 else "bullets" }}</span>
       <span class="hist-status">{{ w.status }}</span>

@@ -1,3 +1,4 @@
+import re
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -21,6 +22,9 @@ QUICK_COMMANDS = {
 }
 
 
+_LIST_PREFIX = re.compile(r"^(?:[*\-•]\s+|\d+[.)]\s+)")
+
+
 def _parse_quick_command(text: str) -> tuple[str, str | None]:
     lower = text.lower()
     for cmd, category in QUICK_COMMANDS.items():
@@ -29,6 +33,18 @@ def _parse_quick_command(text: str) -> tuple[str, str | None]:
         if lower.endswith(" " + cmd):
             return text[:-len(cmd)].strip(), category
     return text, None
+
+
+def _parse_lines(raw: str) -> list[tuple[str, str | None]]:
+    results = []
+    for line in raw.splitlines():
+        line = _LIST_PREFIX.sub("", line).strip()
+        if not line:
+            continue
+        text, cat = _parse_quick_command(line)
+        if text:
+            results.append((text, cat))
+    return results
 
 
 def _own_entry(db: Session, user: User, entry_id: int) -> Entry:
@@ -79,12 +95,8 @@ async def create_entry(
     db: Session = Depends(get_db),
 ):
     form = await request.form()
-    text = str(form.get("text", "")).strip()
-    if text:
-        text, quick_cat = _parse_quick_command(text)
-        category = quick_cat or str(form.get("category", "")) or None
-        if category not in CATEGORY_VALUES:
-            category = None
+    raw = str(form.get("text", "")).strip()
+    if raw:
         entry_date = user_today(user)
         raw_date = str(form.get("entry_date", "")).strip()
         if raw_date:
@@ -92,14 +104,18 @@ async def create_entry(
                 entry_date = date.fromisoformat(raw_date)
             except ValueError:
                 pass
-        entry = Entry(
-            user_id=user.id,
-            entry_date=entry_date,
-            text=text,
-            category=category,
-            position=_next_position(db, user, entry_date),
-        )
-        db.add(entry)
+        form_cat = str(form.get("category", "")) or None
+        if form_cat not in CATEGORY_VALUES:
+            form_cat = None
+        for text, quick_cat in _parse_lines(raw):
+            entry = Entry(
+                user_id=user.id,
+                entry_date=entry_date,
+                text=text,
+                category=quick_cat or form_cat,
+                position=_next_position(db, user, entry_date),
+            )
+            db.add(entry)
         db.commit()
     return today_bullets_response(request, db, user)
 

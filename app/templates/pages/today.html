@@ -28,8 +28,8 @@
 
 {% if not closed %}
 <form class="capture-form" hx-post="/entries" hx-target="#today-bullets" hx-swap="outerHTML"
-  hx-on::after-request="if(event.detail.successful) this.reset()">
-  <input name="text" placeholder="Un bullet por vez · Enter agrega" autocomplete="off" autofocus>
+  hx-on::after-request="if(event.detail.successful){ var t=this.querySelector('textarea'); t.value=''; t.style.height='auto'; }">
+  <textarea name="text" rows="1" placeholder="Un bullet por vez · Shift+Enter nueva línea" autocomplete="off" autofocus></textarea>
   <button type="submit" hidden></button>
 </form>
 {% endif %}

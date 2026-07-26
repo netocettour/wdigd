@@ -297,6 +297,25 @@ input:focus {
   margin-top: 4px;
 }
 
+.capture-form textarea {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 16px;
+  padding: 13px 15px;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: inherit;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+.capture-form textarea:focus {
+  border-color: var(--input-border-focus);
+}
+
 .bullet {
   display: flex;
   flex-direction: column;
@@ -339,8 +358,7 @@ input:focus {
 }
 
 .bullet:hover .bullet-x,
-.ach:hover .ach-x,
-.ri-item:hover .ri-x {
+.ach:hover .ach-x {
   opacity: 1;
 }
 
@@ -582,6 +600,36 @@ input:focus {
   font-size: 29px;
   line-height: 1.2;
   letter-spacing: -0.01em;
+}
+
+/* input.* para ganarle a la regla global de inputs (misma especificidad, más abajo). */
+input.wk-name-input {
+  width: 100%;
+  max-width: 460px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 16px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 2px 0;
+  outline: none;
+}
+
+input.wk-name-input::placeholder {
+  color: var(--muted-2);
+  opacity: 0.75;
+}
+
+input.wk-name-input:hover {
+  border-bottom-color: var(--border-soft);
+}
+
+input.wk-name-input:focus {
+  color: var(--text);
+  border-color: transparent;
+  border-bottom-color: var(--input-border-focus);
 }
 
 .wk-closed-line {
@@ -828,17 +876,9 @@ input.ach-input {
   align-self: flex-start;
 }
 
-input.add-input {
-  font-size: 14px;
-  padding: 9px 12px;
-  border-radius: 8px;
-  max-width: 420px;
-}
-
 /* Narrativa y prioridades */
 
-.narrative-input,
-.priorities-input {
+.narrative-input {
   width: 100%;
   font-family: var(--serif);
   font-size: 16px;
@@ -852,79 +892,76 @@ input.add-input {
   resize: vertical;
 }
 
-.narrative-input:focus,
-.priorities-input:focus {
+.narrative-input:focus {
   border-color: var(--input-border-focus);
 }
 
-.priorities-input {
-  max-width: 420px;
-  line-height: 1.6;
+.prio-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 460px;
+}
+
+.prio-editor .prio-chips {
+  padding: 0;
+}
+
+.prio-editor .prio-chips:empty {
+  display: none;
+}
+
+.chip-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.chip-x {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--muted-2);
+}
+
+.chip-x:hover {
+  color: var(--accent);
+}
+
+input.prio-input {
+  width: 100%;
+  font-family: var(--serif);
+  font-size: 16px;
+  padding: 12px 15px;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: inherit;
+  outline: none;
+}
+
+input.prio-input:focus {
+  border-color: var(--input-border-focus);
 }
 
 .narrative-ro {
   font-family: var(--serif);
   font-size: 16px;
   line-height: 1.7;
-  white-space: pre-wrap;
   color: light-dark(#3a332b, #d8d0c2);
 }
 
-/* Preocupaciones y seguimientos */
-
-.ri-cols {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 28px;
+.narrative-ro ul,
+.narrative-ro ol {
+  margin: 8px 0;
+  padding-left: 24px;
 }
 
-.ri-col {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.ri-head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.ri-label {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: light-dark(#7c7060, #a1968a);
-}
-
-.ri-prompt {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 14.5px;
-  color: var(--muted);
-}
-
-.ri-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.ri-line {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-}
-
-.ri-text {
-  font-size: 15px;
-  line-height: 1.5;
-  flex: 1;
-}
-
-.ri-note {
-  font-size: 12.5px;
-  font-style: italic;
-  color: var(--muted-2);
+.narrative-ro li {
+  margin-bottom: 4px;
 }
 
 /* Historial */
@@ -965,6 +1002,13 @@ input.add-input {
 .hist-year {
   font-size: 12.5px;
   color: var(--muted-2);
+}
+
+.hist-name {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14.5px;
+  color: var(--muted);
 }
 
 .hist-meta {
