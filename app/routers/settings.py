@@ -1,17 +1,17 @@
-from zoneinfo import ZoneInfo
-
 from fastapi import APIRouter, Depends, Form, Request
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import get_current_user
 from app.models import User
-from app.security import hash_password, verify_password
+from app.security import MIN_PASSWORD_LENGTH, hash_password, verify_password
 from app.templating import templates
+from app.users import find_by_email, is_valid_email, normalize_email
+from app.weeks import valid_timezone
 
 router = APIRouter()
 
+# Atajos del datalist; el campo acepta cualquier zona válida de la IANA.
 TIMEZONES = [
     "America/Argentina/Cordoba",
     "America/Argentina/Buenos_Aires",
@@ -29,7 +29,12 @@ TIMEZONES = [
 ]
 
 
-def _render(request, user, msgs=None, status_code=200):
+def _render(
+    request: Request,
+    user: User,
+    msgs: dict[str, str] | None = None,
+    status_code: int = 200,
+):
     return templates.TemplateResponse(
         request,
         "pages/settings.html",
@@ -51,23 +56,19 @@ def update_profile(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    email = email.strip().lower()
+    email = normalize_email(email)
     timezone = timezone.strip()
-    if not email or "@" not in email:
-        return _render(request, user, {"profile_error": "Ingresá un email válido."}, 400)
-    try:
-        ZoneInfo(timezone)
-    except Exception:
-        return _render(
-            request, user, {"profile_error": "Esa zona horaria no existe."}, 400
-        )
-    taken = db.execute(
-        select(User).where(func.lower(User.email) == email, User.id != user.id)
-    ).scalar_one_or_none()
-    if taken is not None:
-        return _render(
-            request, user, {"profile_error": "Ese email ya está registrado."}, 400
-        )
+
+    error = None
+    if not is_valid_email(email):
+        error = "Ingresá un email válido."
+    elif not valid_timezone(timezone):
+        error = "Esa zona horaria no existe."
+    elif find_by_email(db, email, exclude_id=user.id) is not None:
+        error = "Ese email ya está registrado."
+    if error:
+        return _render(request, user, {"profile_error": error}, 400)
+
     user.email = email
     user.timezone = timezone
     db.commit()
@@ -82,17 +83,14 @@ def update_password(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    error = None
     if not verify_password(current, user.password_hash):
-        return _render(
-            request, user, {"password_error": "La contraseña actual no coincide."}, 400
-        )
-    if len(new) < 8:
-        return _render(
-            request,
-            user,
-            {"password_error": "La contraseña nueva necesita al menos 8 caracteres."},
-            400,
-        )
+        error = "La contraseña actual no coincide."
+    elif len(new) < MIN_PASSWORD_LENGTH:
+        error = f"La contraseña nueva necesita al menos {MIN_PASSWORD_LENGTH} caracteres."
+    if error:
+        return _render(request, user, {"password_error": error}, 400)
+
     user.password_hash = hash_password(new)
     db.commit()
     return _render(request, user, {"password_ok": "Listo."})

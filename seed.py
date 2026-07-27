@@ -8,15 +8,18 @@ Cuatro semanas hacia atrás (offsets 3..0):
 - W0 (actual): entries hasta hoy, sin review.
 
 Uso: python seed.py  →  usuario demo@wdigd.local / contraseña demo1234
+No usarlo en producción: crea un usuario demo con contraseña conocida.
 """
 
-from datetime import datetime, timedelta, timezone as dt_timezone
+from datetime import date, datetime, timedelta, timezone as dt_timezone
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import delete, select
+from sqlalchemy.orm import Session
 
 from app.db import SessionLocal
 from app.models import (
+    DEFAULT_TIMEZONE,
     Achievement,
     Entry,
     ReviewItem,
@@ -28,12 +31,11 @@ from app.security import hash_password
 
 EMAIL = "demo@wdigd.local"
 PASSWORD = "demo1234"
-TZ = "America/Argentina/Cordoba"
 
 PRIOS_A = ["Cerrar quarter comercial", "Evaluación del equipo", "Mañanas para plataforma"]
 PRIOS_B = ["Cerrar etapa plataforma", "Firmar con Brasil", "Mañanas para plataforma"]
 
-# (día 0=lun..6=dom, texto, categoría, prioridad-alineada|None)
+# (día 0=lun..6=dom, texto, categoría, prioridad alineada | None)
 WEEK_MINUS_3 = [
     (0, "Planificar la semana", "desbloqueo", None),
     (0, "Primer borrador del roadmap de la plataforma", "avance", None),
@@ -72,151 +74,185 @@ CURRENT_WEEK = [
     (3, "Propuesta de precios nueva", "avance", None),
 ]
 
+# (texto del bullet de origen, texto del highlight en limpio)
+HIGHLIGHTS_MINUS_2 = [
+    (
+        "Evaluación de performance de Luis",
+        "Cerré la evaluación de performance de Luis, con un plan claro.",
+    ),
+    ("Cerrar nuevas ventas en Brasil", "Brasil pasó a etapa de contrato."),
+]
 
-def main() -> None:
-    db = SessionLocal()
-    try:
-        user = db.execute(select(User).where(User.email == EMAIL)).scalar_one_or_none()
-        if user is None:
-            user = User(email=EMAIL, password_hash=hash_password(PASSWORD), timezone=TZ)
-            db.add(user)
-            db.flush()
+NARRATIVE_MINUS_2 = (
+    "Fue una semana de cerrar cosas que venían abiertas hace rato. "
+    "Lo de Luis salió mejor de lo que esperaba: la conversación difícil "
+    "era conmigo, no con él.\n\n"
+    "La plataforma sigue avanzando pero sin un logro a la vista; quiero "
+    "definir qué significaría cerrar esa etapa."
+)
 
-        _wipe_user_data(db, user)
 
-        today = datetime.now(ZoneInfo(TZ)).date()
-        monday = today - timedelta(days=today.weekday())
-
-        def add_week(offset_weeks: int, rows) -> None:
-            base = monday - timedelta(days=7 * offset_weeks)
-            positions: dict = {}
-            for day, text, category, prio in rows:
-                d = base + timedelta(days=day)
-                if offset_weeks == 0 and d > today:
-                    continue
-                positions[d] = positions.get(d, 0) + 1
-                db.add(
-                    Entry(
-                        user_id=user.id,
-                        entry_date=d,
-                        text=text,
-                        category=category,
-                        priority_label=prio,
-                        position=positions[d],
-                    )
-                )
-
-        add_week(3, WEEK_MINUS_3)
-        add_week(2, WEEK_MINUS_2)
-        add_week(1, WEEK_MINUS_1)
-        add_week(0, CURRENT_WEEK)
-        db.flush()
-
-        def iso_of(offset_weeks: int) -> tuple[int, int]:
-            iso = (monday - timedelta(days=7 * offset_weeks)).isocalendar()
-            return iso.year, iso.week
-
-        def entry_by_text(text: str) -> Entry | None:
-            return db.execute(
-                select(Entry).where(Entry.user_id == user.id, Entry.text == text)
-            ).scalars().first()
-
-        # W-3: review cerrada, fija las prioridades que rigen W-2.
-        y3, w3 = iso_of(3)
-        r3 = WeeklyReview(
-            user_id=user.id,
-            iso_year=y3,
-            iso_week=w3,
-            name="Arranque del trimestre",
-            narrative="Semana de arranque del trimestre.",
-            priorities="\n".join(PRIOS_A),
-            closed_at=datetime.now(dt_timezone.utc) - timedelta(days=20),
+def _get_or_create_user(db: Session) -> User:
+    user = db.execute(select(User).where(User.email == EMAIL)).scalar_one_or_none()
+    if user is None:
+        user = User(
+            email=EMAIL, password_hash=hash_password(PASSWORD), timezone=DEFAULT_TIMEZONE
         )
-        db.add(r3)
+        db.add(user)
         db.flush()
-
-        # W-2: review cerrada completa (la semana rica).
-        y2, w2 = iso_of(2)
-        r2 = WeeklyReview(
-            user_id=user.id,
-            iso_year=y2,
-            iso_week=w2,
-            name="La semana de Luis",
-            narrative=(
-                "Fue una semana de cerrar cosas que venían abiertas hace rato. "
-                "Lo de Luis salió mejor de lo que esperaba: la conversación difícil "
-                "era conmigo, no con él.\n\n"
-                "La plataforma sigue avanzando pero sin un logro a la vista; quiero "
-                "definir qué significaría cerrar esa etapa."
-            ),
-            priorities="\n".join(PRIOS_B),
-            closed_at=datetime.now(dt_timezone.utc) - timedelta(days=13),
-        )
-        db.add(r2)
-        db.flush()
-        for pos, source in enumerate(
-            ["Evaluación de performance de Luis", "Cerrar nuevas ventas en Brasil"], start=1
-        ):
-            entry = entry_by_text(source)
-            ach = Achievement(
-                weekly_review_id=r2.id,
-                text=(
-                    "Cerré la evaluación de performance de Luis, con un plan claro."
-                    if pos == 1
-                    else "Brasil pasó a etapa de contrato."
-                ),
-                position=pos,
-            )
-            if entry is not None:
-                ach.entries.append(entry)
-            db.add(ach)
-
-        # W-1: review a medias, sin cerrar.
-        y1, w1 = iso_of(1)
-        r1 = WeeklyReview(
-            user_id=user.id,
-            iso_year=y1,
-            iso_week=w1,
-            narrative="Semana cortada por el incendio del deploy. Quedó sin cerrar.",
-            priorities="",
-            closed_at=None,
-        )
-        db.add(r1)
-        db.flush()
-
-        db.commit()
-        print(f"Seed listo: {EMAIL} / {PASSWORD}")
-        print(f"Semanas: {iso_of(3)} (cerrada), {iso_of(2)} (cerrada), "
-              f"{iso_of(1)} (a medias), {iso_of(0)} (actual).")
-    finally:
-        db.close()
+    return user
 
 
-def _wipe_user_data(db, user) -> None:
-    review_ids = [
-        r_id
-        for (r_id,) in db.execute(
+def _wipe_user_data(db: Session, user: User) -> None:
+    review_ids = list(
+        db.execute(
             select(WeeklyReview.id).where(WeeklyReview.user_id == user.id)
-        )
-    ]
+        ).scalars()
+    )
     if review_ids:
-        ach_ids = [
-            a_id
-            for (a_id,) in db.execute(
-                select(Achievement.id).where(Achievement.weekly_review_id.in_(review_ids))
-            )
-        ]
-        if ach_ids:
+        achievement_ids = list(
+            db.execute(
+                select(Achievement.id).where(
+                    Achievement.weekly_review_id.in_(review_ids)
+                )
+            ).scalars()
+        )
+        if achievement_ids:
             db.execute(
                 achievement_entries.delete().where(
-                    achievement_entries.c.achievement_id.in_(ach_ids)
+                    achievement_entries.c.achievement_id.in_(achievement_ids)
                 )
             )
-            db.execute(delete(Achievement).where(Achievement.id.in_(ach_ids)))
+            db.execute(delete(Achievement).where(Achievement.id.in_(achievement_ids)))
         db.execute(delete(ReviewItem).where(ReviewItem.user_id == user.id))
         db.execute(delete(WeeklyReview).where(WeeklyReview.user_id == user.id))
     db.execute(delete(Entry).where(Entry.user_id == user.id))
     db.flush()
+
+
+def _monday_of_offset(monday: date, offset_weeks: int) -> date:
+    return monday - timedelta(days=7 * offset_weeks)
+
+
+def _add_entries(db: Session, user: User, base_monday: date, rows: list, today: date) -> None:
+    positions: dict[date, int] = {}
+    for weekday, text, category, priority in rows:
+        day = base_monday + timedelta(days=weekday)
+        if day > today:
+            continue
+        positions[day] = positions.get(day, 0) + 1
+        db.add(
+            Entry(
+                user_id=user.id,
+                entry_date=day,
+                text=text,
+                category=category,
+                priority_label=priority,
+                position=positions[day],
+            )
+        )
+
+
+def _add_review(
+    db: Session,
+    user: User,
+    monday: date,
+    *,
+    name: str = "",
+    narrative: str = "",
+    priorities: list[str] | None = None,
+    closed_days_ago: int | None = None,
+) -> WeeklyReview:
+    iso = monday.isocalendar()
+    closed_at = (
+        None
+        if closed_days_ago is None
+        else datetime.now(dt_timezone.utc) - timedelta(days=closed_days_ago)
+    )
+    review = WeeklyReview(
+        user_id=user.id,
+        iso_year=iso.year,
+        iso_week=iso.week,
+        name=name,
+        narrative=narrative,
+        priorities="\n".join(priorities or []),
+        closed_at=closed_at,
+    )
+    db.add(review)
+    db.flush()
+    return review
+
+
+def _add_highlights(db: Session, user: User, review: WeeklyReview) -> None:
+    for position, (source_text, highlight_text) in enumerate(HIGHLIGHTS_MINUS_2, start=1):
+        entry = db.execute(
+            select(Entry).where(Entry.user_id == user.id, Entry.text == source_text)
+        ).scalars().first()
+        achievement = Achievement(
+            weekly_review_id=review.id, text=highlight_text, position=position
+        )
+        if entry is not None:
+            achievement.entries.append(entry)
+        db.add(achievement)
+
+
+def main() -> None:
+    db = SessionLocal()
+    try:
+        user = _get_or_create_user(db)
+        _wipe_user_data(db, user)
+
+        today = datetime.now(ZoneInfo(user.timezone)).date()
+        monday = today - timedelta(days=today.weekday())
+        mondays = {offset: _monday_of_offset(monday, offset) for offset in (3, 2, 1, 0)}
+
+        for offset, rows in (
+            (3, WEEK_MINUS_3),
+            (2, WEEK_MINUS_2),
+            (1, WEEK_MINUS_1),
+            (0, CURRENT_WEEK),
+        ):
+            _add_entries(db, user, mondays[offset], rows, today)
+        db.flush()
+
+        # W-3: cerrada, fija las prioridades que rigen W-2.
+        _add_review(
+            db,
+            user,
+            mondays[3],
+            name="Arranque del trimestre",
+            narrative="Semana de arranque del trimestre.",
+            priorities=PRIOS_A,
+            closed_days_ago=20,
+        )
+
+        # W-2: cerrada y completa, la semana rica.
+        review_minus_2 = _add_review(
+            db,
+            user,
+            mondays[2],
+            name="La semana de Luis",
+            narrative=NARRATIVE_MINUS_2,
+            priorities=PRIOS_B,
+            closed_days_ago=13,
+        )
+        _add_highlights(db, user, review_minus_2)
+
+        # W-1: a medias, sin cerrar.
+        _add_review(
+            db,
+            user,
+            mondays[1],
+            narrative="Semana cortada por el incendio del deploy. Quedó sin cerrar.",
+        )
+
+        db.commit()
+        print(f"Seed listo: {EMAIL} / {PASSWORD}")
+        for offset, label in ((3, "cerrada"), (2, "cerrada"), (1, "a medias"), (0, "actual")):
+            iso = mondays[offset].isocalendar()
+            print(f"  {iso.year}-W{iso.week:02d} ({label})")
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":

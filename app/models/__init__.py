@@ -1,4 +1,4 @@
-from app.models.user import User
+from app.models.user import DEFAULT_TIMEZONE, User
 from app.models.entry import (
     CATEGORY_LABELS,
     CATEGORY_VALUES,
@@ -15,6 +15,7 @@ from app.models.review import (
 from app.models.daily_note import DailyNote
 
 __all__ = [
+    "DEFAULT_TIMEZONE",
     "User",
     "Entry",
     "CATEGORY_LABELS",

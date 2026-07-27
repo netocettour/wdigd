@@ -1,4 +1,4 @@
-<div id="today-bullets" data-priorities='{{ (prioridades or [])|tojson }}'>
+<div id="today-bullets" data-priorities='{{ (priorities or [])|tojson }}'>
   {% if not bullets %}
   <p class="empty-hint">Todavía no capturaste nada hoy.</p>
   {% endif %}

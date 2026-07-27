@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
@@ -8,9 +8,40 @@ from app.db import get_db
 from app.deps import get_current_user
 from app.models import Entry, User, WeeklyReview
 from app.templating import templates
-from app.weeks import iso_week_str, parse_priorities, user_today, week_label, week_monday
+from app.weeks import (
+    DAYS_IN_WEEK,
+    iso_week_str,
+    monday_of,
+    parse_priorities,
+    user_today,
+    week_label,
+    week_monday,
+)
 
 router = APIRouter()
+
+STATUS_SIN_SESION = "sin sesión"
+STATUS_CERRADA = "cerrada"
+STATUS_SIN_CERRAR = "sin cerrar"
+
+
+def _bullets_per_week(db: Session, user: User) -> dict[date, int]:
+    rows = db.execute(
+        select(Entry.entry_date, func.count(Entry.id))
+        .where(Entry.user_id == user.id)
+        .group_by(Entry.entry_date)
+    ).all()
+    per_week: dict[date, int] = {}
+    for entry_date, count in rows:
+        monday = monday_of(entry_date)
+        per_week[monday] = per_week.get(monday, 0) + count
+    return per_week
+
+
+def _status(review: WeeklyReview | None) -> str:
+    if review is None:
+        return STATUS_SIN_SESION
+    return STATUS_CERRADA if review.closed_at is not None else STATUS_SIN_CERRAR
 
 
 @router.get("/history")
@@ -19,59 +50,40 @@ def history(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    hoy = user_today(user)
-    current_monday = week_monday(*hoy.isocalendar()[:2])
+    current_monday = monday_of(user_today(user))
 
-    first_entry = db.execute(
-        select(func.min(Entry.entry_date)).where(Entry.user_id == user.id)
-    ).scalar()
     reviews = {
         (r.iso_year, r.iso_week): r
         for r in db.execute(
             select(WeeklyReview).where(WeeklyReview.user_id == user.id)
         ).scalars()
     }
-    entry_counts = dict(
-        db.execute(
-            select(Entry.entry_date, func.count(Entry.id))
-            .where(Entry.user_id == user.id)
-            .group_by(Entry.entry_date)
-        ).all()
-    )
+    bullets_per_week = _bullets_per_week(db, user)
 
-    start_monday = current_monday
-    if first_entry is not None:
-        start_monday = min(start_monday, week_monday(*first_entry.isocalendar()[:2]))
-    for iso_year, iso_week in reviews:
-        start_monday = min(start_monday, week_monday(iso_year, iso_week))
+    # La lista arranca en la semana en curso y baja hasta la más vieja con material.
+    start_monday = min(
+        [current_monday]
+        + list(bullets_per_week)
+        + [week_monday(iso_year, iso_week) for iso_year, iso_week in reviews]
+    )
 
     weeks = []
     monday = current_monday
     while monday >= start_monday:
         iso = monday.isocalendar()
         review = reviews.get((iso.year, iso.week))
-        count = sum(
-            n for d, n in entry_counts.items() if monday <= d <= monday + timedelta(days=6)
-        )
-        if review is None:
-            status = "sin sesión"
-        elif review.closed_at is not None:
-            status = "cerrada"
-        else:
-            status = "sin cerrar"
-        priorities = parse_priorities(review.priorities) if review else []
         weeks.append(
             {
                 "iso": iso_week_str(monday),
                 "label": week_label(monday),
                 "year": monday.year,
-                "status": status,
-                "count": count,
+                "status": _status(review),
+                "count": bullets_per_week.get(monday, 0),
                 "is_current": monday == current_monday,
-                "priorities": priorities,
+                "priorities": parse_priorities(review.priorities) if review else [],
                 "name": review.name if review else "",
             }
         )
-        monday -= timedelta(days=7)
+        monday -= timedelta(days=DAYS_IN_WEEK)
 
     return templates.TemplateResponse(request, "pages/history.html", {"weeks": weeks})
