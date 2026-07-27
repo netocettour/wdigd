@@ -107,10 +107,19 @@ a:hover {
   color: var(--muted-2);
 }
 
-input:not([type]),
-input[type="text"],
-input[type="email"],
-input[type="password"] {
+/* Todos los campos "caja" comparten el mismo marco; cada uno ajusta tipografía
+   y padding después. `:where()` mantiene la especificidad en 0 para que una
+   clase (input.prio-input, .narrative-input) alcance para sobrescribir. */
+:where(
+  input:not([type]),
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  .capture-form input,
+  .prio-input,
+  .narrative-input,
+  .daily-note-input
+) {
   width: 100%;
   font-family: var(--sans);
   font-size: 16px;
@@ -122,7 +131,7 @@ input[type="password"] {
   outline: none;
 }
 
-input:focus {
+:where(input, textarea):focus {
   border-color: var(--input-border-focus);
 }
 
@@ -298,20 +307,7 @@ input:focus {
 }
 
 .capture-form input {
-  width: 100%;
-  font-family: var(--sans);
-  font-size: 16px;
-  padding: 13px 15px;
-  border-radius: 10px;
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
-  color: inherit;
-  outline: none;
   line-height: 1.5;
-}
-
-.capture-form input:focus {
-  border-color: var(--input-border-focus);
 }
 
 .bullet {
@@ -424,10 +420,6 @@ input:focus {
   color: light-dark(#8f4a2e, #dda587);
 }
 
-.bullet-editform input {
-  font-size: 16px;
-}
-
 /* Nota del día */
 
 .daily-note {
@@ -444,21 +436,11 @@ input:focus {
 }
 
 .daily-note-input {
-  width: 100%;
   font-family: var(--serif);
   font-size: 15px;
   line-height: 1.65;
   padding: 14px 16px;
-  border: 1px solid var(--input-border);
-  border-radius: 10px;
-  background: var(--input-bg);
-  color: var(--text);
   resize: vertical;
-}
-
-.daily-note-input:focus {
-  outline: none;
-  border-color: var(--input-border-focus);
 }
 
 .daily-note-input::placeholder {
@@ -871,7 +853,7 @@ input.ach-input {
   line-height: 1.45;
 }
 
-.ach-temas {
+.ach-prios {
   font-size: 12px;
   color: var(--muted-2);
 }
@@ -883,21 +865,11 @@ input.ach-input {
 /* Narrativa y prioridades */
 
 .narrative-input {
-  width: 100%;
   font-family: var(--serif);
   font-size: 16px;
   line-height: 1.7;
   padding: 18px 20px;
-  border-radius: 10px;
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
-  color: inherit;
-  outline: none;
   resize: vertical;
-}
-
-.narrative-input:focus {
-  border-color: var(--input-border-focus);
 }
 
 .prio-editor {
@@ -935,20 +907,9 @@ input.ach-input {
   color: var(--accent);
 }
 
-input.prio-input {
-  width: 100%;
+.prio-input {
   font-family: var(--serif);
-  font-size: 16px;
   padding: 12px 15px;
-  border-radius: 10px;
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
-  color: inherit;
-  outline: none;
-}
-
-input.prio-input:focus {
-  border-color: var(--input-border-focus);
 }
 
 .narrative-ro {
@@ -1024,6 +985,15 @@ input.prio-input:focus {
 
 .hist-status {
   font-style: italic;
+}
+
+.hist-prios {
+  padding: 4px 0 0;
+}
+
+.chip-prio-sm {
+  font-size: 12.5px;
+  padding: 2px 10px;
 }
 
 /* Ajustes */

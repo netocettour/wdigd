@@ -1,25 +1,22 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.deps import get_current_user
-from app.models import (
-    CATEGORY_LABELS,
-    Achievement,
-    Entry,
-    User,
-    WeeklyReview,
-    achievement_entries,
-)
-from app.observations import week_observations
-from app.priorities import priorities_for_week
+from app.models import Achievement, Entry, User, WeeklyReview, achievement_entries
 from app.templating import templates
+from app.week_material import (
+    find_review,
+    get_or_create_review,
+    material_context,
+    material_response,
+)
 from app.weeks import (
-    DIAS_ABBR,
+    format_iso_week,
     iso_week_str,
     next_iso,
     parse_iso_week,
@@ -32,140 +29,20 @@ from app.weeks import (
 
 router = APIRouter()
 
-FUERA = "Fuera de las prioridades de la semana"
-
-
-def get_review(
-    db: Session, user: User, iso_year: int, iso_week: int, create: bool = False
-) -> WeeklyReview | None:
-    review = db.execute(
-        select(WeeklyReview).where(
-            WeeklyReview.user_id == user.id,
-            WeeklyReview.iso_year == iso_year,
-            WeeklyReview.iso_week == iso_week,
-        )
-    ).scalar_one_or_none()
-    if review is None and create:
-        review = WeeklyReview(user_id=user.id, iso_year=iso_year, iso_week=iso_week)
-        db.add(review)
-        db.commit()
-    return review
-
-
-def _week_entries(db: Session, user: User, monday: date) -> list[Entry]:
-    return list(
-        db.execute(
-            select(Entry)
-            .where(
-                Entry.user_id == user.id,
-                Entry.entry_date >= monday,
-                Entry.entry_date <= monday + timedelta(days=6),
-            )
-            .order_by(Entry.entry_date, Entry.position, Entry.id)
-        ).scalars()
-    )
-
-
-def _material_context(request: Request, db: Session, user: User, iso: str) -> dict:
-    iso_year, iso_week = parse_iso_week(iso)
-    monday = week_monday(iso_year, iso_week)
-    review = get_review(db, user, iso_year, iso_week)
-    editable = review is None or review.closed_at is None
-    entries = _week_entries(db, user, monday)
-    priorities = priorities_for_week(db, user, iso_year, iso_week)
-
-    promoted: dict[int, int] = {}
-    achievements = []
-    if review is not None:
-        achs = list(
-            db.execute(
-                select(Achievement)
-                .options(joinedload(Achievement.entries))
-                .where(Achievement.weekly_review_id == review.id)
-                .order_by(Achievement.position, Achievement.id)
-            )
-            .unique()
-            .scalars()
-        )
-        for a in achs:
-            temas = sorted({e.priority_label for e in a.entries if e.priority_label})
-            for e in a.entries:
-                promoted[e.id] = a.id
-            achievements.append(
-                {"id": a.id, "text": a.text, "temas": ", ".join(temas) or "Fuera de prioridades"}
-            )
-
-    def make_item(e: Entry, in_priority_group: bool) -> dict:
-        uncat = e.category is None
-        return {
-            "id": e.id,
-            "text": e.text,
-            "day_abbr": DIAS_ABBR[e.entry_date.weekday()],
-            "category_label": CATEGORY_LABELS.get(e.category, ""),
-            "priority_label": e.priority_label,
-            "promoted": e.id in promoted,
-            "achievement_id": promoted.get(e.id),
-            "show_chips": editable and uncat and in_priority_group,
-            "show_cat_text": (not uncat) and in_priority_group,
-            "show_align": editable and not in_priority_group,
-        }
-
-    # Grupos: primero las prioridades vigentes que tienen bullets (en su orden),
-    # después cualquier etiqueta suelta, y al final los que quedaron fuera.
-    groups = []
-    used = set()
-    for label in priorities:
-        items = [e for e in entries if e.priority_label == label]
-        if items:
-            used.add(label)
-            groups.append(
-                {"name": label, "is_fuera": False, "items": [make_item(e, True) for e in items]}
-            )
-    leftover_labels = sorted(
-        {e.priority_label for e in entries if e.priority_label and e.priority_label not in used},
-        key=str.lower,
-    )
-    for label in leftover_labels:
-        items = [e for e in entries if e.priority_label == label]
-        groups.append(
-            {"name": label, "is_fuera": False, "items": [make_item(e, True) for e in items]}
-        )
-    fuera = [e for e in entries if not e.priority_label]
-    if fuera:
-        groups.append(
-            {"name": FUERA, "is_fuera": True, "items": [make_item(e, False) for e in fuera]}
-        )
-
-    return {
-        "iso": iso,
-        "editable": editable,
-        "groups": groups,
-        "achievements": achievements,
-        "priorities": priorities,
-        "can_align": bool(priorities),
-        "obs": week_observations(db, user, iso_year, iso_week, entries),
-    }
-
-
-def material_response(request: Request, db: Session, user: User, iso: str):
-    return templates.TemplateResponse(
-        request, "components/week_material.html", _material_context(request, db, user, iso)
-    )
-
 
 @router.get("/week")
 def week_index(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    hoy = user_today(user)
-    current_iso = iso_week_str(hoy)
-    iso = hoy.isocalendar()
+    """Atajo: si la semana anterior quedó sin cerrar, la sesión pendiente es esa."""
+    today = user_today(user)
+    iso = today.isocalendar()
     prev_year, prev_week = prev_iso(iso.year, iso.week)
-    prev_review = get_review(db, user, prev_year, prev_week)
-    if prev_review is not None and prev_review.closed_at is None:
-        return RedirectResponse(f"/week/{prev_year}-W{prev_week:02d}", status_code=303)
-    return RedirectResponse(f"/week/{current_iso}", status_code=303)
+    previous = find_review(db, user, prev_year, prev_week)
+    if previous is not None and previous.closed_at is None:
+        return RedirectResponse(f"/week/{format_iso_week(prev_year, prev_week)}", status_code=303)
+    return RedirectResponse(f"/week/{iso_week_str(today)}", status_code=303)
 
 
 @router.get("/week/{iso_week}")
@@ -176,22 +53,20 @@ def week_page(
     db: Session = Depends(get_db),
 ):
     iso_year, week_number = parse_iso_week(iso_week)
-    review = get_review(db, user, iso_year, week_number, create=True)
-    monday = week_monday(iso_year, week_number)
-    current_iso = iso_week_str(user_today(user))
+    review = get_or_create_review(db, user, iso_year, week_number)
+    is_current_week = iso_week == iso_week_str(user_today(user))
 
-    context = _material_context(request, db, user, iso_week)
+    context = material_context(db, user, iso_week)
     context.update(
         {
             "review": review,
-            "label": week_label(monday),
+            "label": week_label(week_monday(iso_year, week_number)),
             "closed": review.closed_at is not None,
             "review_priorities": parse_priorities(review.priorities),
-            "prev_iso": "%d-W%02d" % prev_iso(iso_year, week_number),
+            "prev_iso": format_iso_week(*prev_iso(iso_year, week_number)),
+            # No se navega hacia adelante más allá de la semana en curso.
             "next_iso": (
-                "%d-W%02d" % next_iso(iso_year, week_number)
-                if iso_week != current_iso
-                else None
+                None if is_current_week else format_iso_week(*next_iso(iso_year, week_number))
             ),
         }
     )
@@ -199,21 +74,23 @@ def week_page(
 
 
 @router.patch("/week/{iso_week}")
-async def week_autosave(
+def week_autosave(
     iso_week: str,
-    request: Request,
+    # None = el campo no vino en este autosave y no se toca.
+    name: str | None = Form(None),
+    narrative: str | None = Form(None),
+    priorities: str | None = Form(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     iso_year, week_number = parse_iso_week(iso_week)
-    review = get_review(db, user, iso_year, week_number, create=True)
-    form = await request.form()
-    if "narrative" in form:
-        review.narrative = str(form["narrative"])
-    if "priorities" in form:
-        review.priorities = str(form["priorities"])
-    if "name" in form:
-        review.name = str(form["name"]).strip()
+    review = get_or_create_review(db, user, iso_year, week_number)
+    if name is not None:
+        review.name = name.strip()
+    if narrative is not None:
+        review.narrative = narrative
+    if priorities is not None:
+        review.priorities = priorities
     db.commit()
     return Response(status_code=204)
 
@@ -225,7 +102,7 @@ def week_close(
     db: Session = Depends(get_db),
 ):
     iso_year, week_number = parse_iso_week(iso_week)
-    review = get_review(db, user, iso_year, week_number, create=True)
+    review = get_or_create_review(db, user, iso_year, week_number)
     review.closed_at = datetime.now(timezone.utc)
     db.commit()
     return RedirectResponse(f"/week/{iso_week}", status_code=303)
@@ -238,11 +115,13 @@ def week_reopen(
     db: Session = Depends(get_db),
 ):
     iso_year, week_number = parse_iso_week(iso_week)
-    review = get_review(db, user, iso_year, week_number, create=True)
+    review = get_or_create_review(db, user, iso_year, week_number)
     review.closed_at = None
     db.commit()
     return RedirectResponse(f"/week/{iso_week}", status_code=303)
 
+
+# — Highlights (bloque 3): siempre nacen de un bullet del bloque 1 —
 
 def _own_achievement(db: Session, user: User, achievement_id: int) -> Achievement:
     achievement = db.get(Achievement, achievement_id)
@@ -254,6 +133,15 @@ def _own_achievement(db: Session, user: User, achievement_id: int) -> Achievemen
     return achievement
 
 
+def _next_achievement_position(db: Session, review: WeeklyReview) -> int:
+    last = db.execute(
+        select(func.max(Achievement.position)).where(
+            Achievement.weekly_review_id == review.id
+        )
+    ).scalar()
+    return (last or 0) + 1
+
+
 @router.post("/achievements")
 def create_achievement(
     request: Request,
@@ -263,22 +151,18 @@ def create_achievement(
     db: Session = Depends(get_db),
 ):
     iso_year, week_number = parse_iso_week(iso_week)
-    review = get_review(db, user, iso_year, week_number, create=True)
+    review = get_or_create_review(db, user, iso_year, week_number)
 
     entry = db.get(Entry, entry_id)
     if entry is None or entry.user_id != user.id:
         raise HTTPException(status_code=404)
 
     if entry.text:
-        position = (
-            db.execute(
-                select(func.max(Achievement.position)).where(
-                    Achievement.weekly_review_id == review.id
-                )
-            ).scalar()
-            or 0
-        ) + 1
-        achievement = Achievement(weekly_review_id=review.id, text=entry.text, position=position)
+        achievement = Achievement(
+            weekly_review_id=review.id,
+            text=entry.text,
+            position=_next_achievement_position(db, review),
+        )
         achievement.entries.append(entry)
         db.add(achievement)
         db.commit()
@@ -286,17 +170,15 @@ def create_achievement(
 
 
 @router.patch("/achievements/{achievement_id}")
-async def update_achievement(
+def update_achievement(
     achievement_id: int,
-    request: Request,
+    text: str = Form(""),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     achievement = _own_achievement(db, user, achievement_id)
-    form = await request.form()
-    text = str(form.get("text", "")).strip()
-    if text:
-        achievement.text = text
+    if text.strip():
+        achievement.text = text.strip()
         db.commit()
     return Response(status_code=204)
 

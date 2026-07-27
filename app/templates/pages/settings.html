@@ -37,7 +37,8 @@
       </label>
       <label class="field">
         <span class="field-label">Contraseña nueva</span>
-        <input type="password" name="new" required minlength="8" autocomplete="new-password">
+        <input type="password" name="new" required minlength="{{ MIN_PASSWORD_LENGTH }}"
+          autocomplete="new-password">
       </label>
       <button type="submit" class="button-primary">Cambiar</button>
     </form>

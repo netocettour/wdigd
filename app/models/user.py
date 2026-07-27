@@ -5,6 +5,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
 
+DEFAULT_TIMEZONE = "America/Argentina/Cordoba"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -15,8 +17,8 @@ class User(Base):
     timezone: Mapped[str] = mapped_column(
         String(64),
         nullable=False,
-        default="America/Argentina/Cordoba",
-        server_default="America/Argentina/Cordoba",
+        default=DEFAULT_TIMEZONE,
+        server_default=DEFAULT_TIMEZONE,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()

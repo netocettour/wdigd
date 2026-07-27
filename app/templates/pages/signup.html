@@ -13,8 +13,9 @@
     </label>
     <label class="field">
       <span class="field-label">Contraseña</span>
-      <input type="password" name="password" required minlength="8" autocomplete="new-password">
-      <span class="field-hint">Al menos 8 caracteres.</span>
+      <input type="password" name="password" required minlength="{{ MIN_PASSWORD_LENGTH }}"
+        autocomplete="new-password">
+      <span class="field-hint">Al menos {{ MIN_PASSWORD_LENGTH }} caracteres.</span>
     </label>
     <button type="submit" class="button-primary">Crear cuenta</button>
   </form>

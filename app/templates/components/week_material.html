@@ -17,23 +17,23 @@
         <div class="wk-fuera-note">Nada de esto empuja las prioridades que definiste el domingo. Puede ser una señal.</div>
         {% endif %}
         <div class="wk-rows">
-          {% for e in g["items"] %}
+          {% for r in g.rows %}
           <div class="wk-row{% if editable %} clickable{% endif %}"
             {% if editable %}
-            {% if e.promoted %}hx-delete="/achievements/{{ e.achievement_id }}?iso={{ iso }}"{% else %}hx-post="/achievements" hx-vals='{"iso_week": "{{ iso }}", "entry_id": "{{ e.id }}"}'{% endif %}
+            {% if r.promoted %}hx-delete="/achievements/{{ r.achievement_id }}?iso={{ iso }}"{% else %}hx-post="/achievements" hx-vals='{"iso_week": "{{ iso }}", "entry_id": "{{ r.id }}"}'{% endif %}
             hx-target="#week-material" hx-swap="outerHTML"
-            title="{{ 'Quitar highlight' if e.promoted else 'Destacar como highlight' }}"
+            title="{{ 'Quitar highlight' if r.promoted else 'Destacar como highlight' }}"
             {% endif %}>
-            <span class="wk-star{% if e.promoted %} wk-star-on{% endif %}">{{ "★" if e.promoted else ("☆" if editable else "") }}</span>
-            <span class="wk-day">{{ e.day_abbr }}</span>
+            <span class="wk-star{% if r.promoted %} wk-star-on{% endif %}">{{ "★" if r.promoted else ("☆" if editable else "") }}</span>
+            <span class="wk-day">{{ r.day_abbr }}</span>
             <div class="wk-body">
-              <div class="wk-text">{{ e.text }}{% if e.promoted %} <span class="wk-highlight-tag">→ highlight</span>{% endif %}</div>
-              {% if e.show_chips %}
-              <div class="bullet-meta">{{ m.cat_chips(e, "#week-material", "?ctx=week&iso=" ~ iso) }}</div>
-              {% elif e.show_cat_text %}
-              <div class="wk-cat-ro">{{ e.category_label }}</div>
-              {% elif e.show_align and can_align %}
-              <div>{{ m.align_button(e.id, e.priority_label, "#week-material", "?ctx=week&iso=" ~ iso) }}</div>
+              <div class="wk-text">{{ r.text }}{% if r.promoted %} <span class="wk-highlight-tag">→ highlight</span>{% endif %}</div>
+              {% if r.meta == "chips" %}
+              <div class="bullet-meta">{{ m.cat_chips(r, "#week-material", "?ctx=week&iso=" ~ iso) }}</div>
+              {% elif r.meta == "category" %}
+              <div class="wk-cat-ro">{{ r.category_label }}</div>
+              {% elif r.meta == "align" %}
+              <div>{{ m.align_button(r.id, r.priority_label, "#week-material", "?ctx=week&iso=" ~ iso) }}</div>
               {% endif %}
             </div>
           </div>
@@ -50,8 +50,8 @@
       <h2>Observaciones</h2>
     </div>
     <div class="wk-obs">
-      {% for o in obs %}
-      <p>{{ o }}</p>
+      {% for line in observations %}
+      <p>{{ line }}</p>
       {% endfor %}
     </div>
   </section>
@@ -61,23 +61,23 @@
       <div class="wk-num">3</div>
       <h2>Highlights de la semana</h2>
     </div>
-    {% if editable and not achievements %}
+    {% if editable and not highlights %}
     <p class="empty-hint">Tocá bullets del bloque 1 para destacarlos: cada uno aparece acá como highlight y su texto se puede dejar en limpio.</p>
     {% endif %}
     <div class="ach-list">
-      {% for a in achievements %}
+      {% for h in highlights %}
       <div class="ach">
         <div class="ach-body">
           {% if editable %}
-          <input class="ach-input" name="text" value="{{ a.text }}" autocomplete="off"
-            hx-patch="/achievements/{{ a.id }}" hx-trigger="change" hx-swap="none">
+          <input class="ach-input" name="text" value="{{ h.text }}" autocomplete="off"
+            hx-patch="/achievements/{{ h.id }}" hx-trigger="change" hx-swap="none">
           {% else %}
-          <div class="ach-text">{{ a.text }}</div>
+          <div class="ach-text">{{ h.text }}</div>
           {% endif %}
-          {% if a.temas %}<div class="ach-temas">{{ a.temas }}</div>{% endif %}
+          {% if h.priority_labels %}<div class="ach-prios">{{ h.priority_labels }}</div>{% endif %}
         </div>
         {% if editable %}
-        <button type="button" class="bullet-x ach-x" hx-delete="/achievements/{{ a.id }}?iso={{ iso }}" hx-target="#week-material" hx-swap="outerHTML" title="Quitar highlight">×</button>
+        <button type="button" class="bullet-x ach-x" hx-delete="/achievements/{{ h.id }}?iso={{ iso }}" hx-target="#week-material" hx-swap="outerHTML" title="Quitar highlight">×</button>
         {% endif %}
       </div>
       {% endfor %}

@@ -1,50 +1,25 @@
-import re
-from datetime import date
-
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import Response
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.capture import (
+    entries_for_date,
+    next_position,
+    parse_capture,
+    parse_date,
+)
 from app.db import get_db
 from app.deps import get_current_user
 from app.models import CATEGORY_VALUES, Entry, User, achievement_entries
 from app.priorities import next_priority, priorities_for_date
 from app.templating import templates
+from app.week_material import material_response
 from app.weeks import user_today
 
 router = APIRouter()
 
-QUICK_COMMANDS = {
-    "/l": "logro",
-    "/a": "avance",
-    "/d": "desbloqueo",
-}
-
-
-_LIST_PREFIX = re.compile(r"^(?:[*\-•]\s+|\d+[.)]\s+)")
-
-
-def _parse_quick_command(text: str) -> tuple[str, str | None]:
-    lower = text.lower()
-    for cmd, category in QUICK_COMMANDS.items():
-        if lower.startswith(cmd + " "):
-            return text[len(cmd):].strip(), category
-        if lower.endswith(" " + cmd):
-            return text[:-len(cmd)].strip(), category
-    return text, None
-
-
-def _parse_lines(raw: str) -> list[tuple[str, str | None]]:
-    results = []
-    for line in raw.splitlines():
-        line = _LIST_PREFIX.sub("", line).strip()
-        if not line:
-            continue
-        text, cat = _parse_quick_command(line)
-        if text:
-            results.append((text, cat))
-    return results
+# Desde dónde se editó el bullet: cambia qué fragmento se devuelve.
+CTX_WEEK = "week"
 
 
 def _own_entry(db: Session, user: User, entry_id: int) -> Entry:
@@ -54,29 +29,17 @@ def _own_entry(db: Session, user: User, entry_id: int) -> Entry:
     return entry
 
 
-def _next_position(db: Session, user: User, entry_date: date) -> int:
-    current = db.execute(
-        select(func.max(Entry.position)).where(
-            Entry.user_id == user.id, Entry.entry_date == entry_date
-        )
-    ).scalar()
-    return (current or 0) + 1
-
-
 def today_bullets_response(request: Request, db: Session, user: User):
-    hoy = user_today(user)
-    bullets = list(
-        db.execute(
-            select(Entry)
-            .where(Entry.user_id == user.id, Entry.entry_date == hoy)
-            .order_by(Entry.position, Entry.id)
-        ).scalars()
-    )
-    prioridades = priorities_for_date(db, user, hoy)
+    today = user_today(user)
+    priorities = priorities_for_date(db, user, today)
     return templates.TemplateResponse(
         request,
         "components/bullets_today.html",
-        {"bullets": bullets, "prioridades": prioridades, "can_align": bool(prioridades)},
+        {
+            "bullets": entries_for_date(db, user, today),
+            "priorities": priorities,
+            "can_align": bool(priorities),
+        },
     )
 
 
@@ -88,34 +51,40 @@ def _bullet_response(request: Request, db: Session, user: User, entry: Entry):
     )
 
 
+def _updated_response(
+    request: Request, db: Session, user: User, entry: Entry, ctx: str, iso: str | None
+):
+    """En /week cambia el agrupamiento, así que se recarga el material entero."""
+    if ctx == CTX_WEEK and iso:
+        return material_response(request, db, user, iso)
+    return _bullet_response(request, db, user, entry)
+
+
 @router.post("/entries")
-async def create_entry(
+def create_entry(
     request: Request,
+    text: str = Form(""),
+    entry_date: str = Form(""),
+    category: str = Form(""),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    form = await request.form()
-    raw = str(form.get("text", "")).strip()
-    if raw:
-        entry_date = user_today(user)
-        raw_date = str(form.get("entry_date", "")).strip()
-        if raw_date:
-            try:
-                entry_date = date.fromisoformat(raw_date)
-            except ValueError:
-                pass
-        form_cat = str(form.get("category", "")) or None
-        if form_cat not in CATEGORY_VALUES:
-            form_cat = None
-        for text, quick_cat in _parse_lines(raw):
-            entry = Entry(
-                user_id=user.id,
-                entry_date=entry_date,
-                text=text,
-                category=quick_cat or form_cat,
-                position=_next_position(db, user, entry_date),
+    lines = parse_capture(text.strip())
+    if lines:
+        day = parse_date(entry_date, default=user_today(user))
+        form_category = category if category in CATEGORY_VALUES else None
+        position = next_position(db, user, day)
+        for line_text, quick_category in lines:
+            db.add(
+                Entry(
+                    user_id=user.id,
+                    entry_date=day,
+                    text=line_text,
+                    category=quick_category or form_category,
+                    position=position,
+                )
             )
-            db.add(entry)
+            position += 1
         db.commit()
     return today_bullets_response(request, db, user)
 
@@ -131,62 +100,50 @@ def edit_entry_form(
     return templates.TemplateResponse(request, "components/bullet_edit.html", {"b": entry})
 
 
-def _week_or_bullet(request: Request, db: Session, user: User, entry: Entry, ctx: str, iso):
-    if ctx == "week" and iso:
-        from app.routers.week import material_response
-
-        return material_response(request, db, user, iso)
-    return _bullet_response(request, db, user, entry)
-
-
 @router.patch("/entries/{entry_id}")
-async def update_entry(
+def update_entry(
     entry_id: int,
     request: Request,
     ctx: str = Query("today"),
     iso: str | None = Query(None),
+    # None = el campo no vino y no se toca; "" = vino vacío y sí se aplica.
+    text: str | None = Form(None),
+    category: str | None = Form(None),
+    entry_date: str | None = Form(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     entry = _own_entry(db, user, entry_id)
-    form = await request.form()
-    if "text" in form:
-        text = str(form["text"]).strip()
-        if text:
-            entry.text = text
-    if "category" in form:
-        value = str(form["category"])
-        entry.category = value if value in CATEGORY_VALUES else None
-    if "entry_date" in form:
-        try:
-            entry.entry_date = date.fromisoformat(str(form["entry_date"]))
-        except ValueError:
-            pass
+    if text is not None and text.strip():
+        entry.text = text.strip()
+    if category is not None:
+        entry.category = category if category in CATEGORY_VALUES else None
+    if entry_date is not None:
+        entry.entry_date = parse_date(entry_date, default=entry.entry_date)
     db.commit()
-    return _week_or_bullet(request, db, user, entry, ctx, iso)
+    return _updated_response(request, db, user, entry, ctx, iso)
 
 
 @router.post("/entries/{entry_id}/align")
-async def align_entry(
+def align_entry(
     entry_id: int,
     request: Request,
     ctx: str = Query("today"),
     iso: str | None = Query(None),
+    label: str | None = Form(None),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     entry = _own_entry(db, user, entry_id)
     priorities = priorities_for_date(db, user, entry.entry_date)
-    form = await request.form()
-    if "label" in form:
-        # el cliente cicla la etiqueta y confirma la elegida (debounce de 1.7s)
-        label = str(form["label"]).strip()
-        entry.priority_label = label if label in priorities else None
-    else:
-        # fallback sin JS: ciclar a la siguiente prioridad
+    if label is None:
+        # Fallback sin JS: cada POST cicla a la prioridad siguiente.
         entry.priority_label = next_priority(entry.priority_label, priorities)
+    else:
+        # El cliente cicla la etiqueta y confirma la elegida (debounce de 1.7s).
+        entry.priority_label = label.strip() if label.strip() in priorities else None
     db.commit()
-    return _week_or_bullet(request, db, user, entry, ctx, iso)
+    return _updated_response(request, db, user, entry, ctx, iso)
 
 
 @router.delete("/entries/{entry_id}")
@@ -201,4 +158,5 @@ def delete_entry(
     )
     db.delete(entry)
     db.commit()
+    # 200 con cuerpo vacío: htmx reemplaza el bullet por nada. Un 204 no swapea.
     return Response(content="")

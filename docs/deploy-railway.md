@@ -11,10 +11,13 @@ Pasos para el primer deploy (F5). Requiere cuenta en Railway y el repo en GitHub
    - `DATABASE_URL` → referencia a la variable del Postgres del proyecto
      (`${{Postgres.DATABASE_URL}}`). La app normaliza el prefijo `postgres://`.
    - `SECRET_KEY` → un valor largo y aleatorio (`python -c "import secrets; print(secrets.token_hex(32))"`).
+   - `SECURE_COOKIES` → `true`, para que la cookie de sesión viaje sólo por HTTPS.
 4. Deploy. Verificar en los logs que corrió `alembic upgrade head` antes del start.
 5. Smoke test desde el teléfono: signup, login, capturar un bullet en `/today`,
    abrir `/week`, cerrar y reabrir la semana, `/history`.
 
 Notas:
-- Sin `SECRET_KEY` la app usa un valor de desarrollo: no deployar así.
+- Sin `SECRET_KEY` la app usa un valor de desarrollo y lo avisa en los logs
+  ("SECRET_KEY sin definir"): no deployar así.
+- Cambiar `SECRET_KEY` invalida las sesiones abiertas; hay que volver a entrar.
 - No usar `seed.py` en producción (crea un usuario demo con contraseña conocida).

@@ -1,22 +1,14 @@
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.models import User
-from app.security import hash_password, verify_password
+from app.security import MIN_PASSWORD_LENGTH, hash_password, verify_password
 from app.templating import templates
+from app.users import find_by_email, is_valid_email, normalize_email
 
 router = APIRouter()
-
-MIN_PASSWORD = 8
-
-
-def _find_by_email(db: Session, email: str) -> User | None:
-    return db.execute(
-        select(User).where(func.lower(User.email) == email.lower())
-    ).scalar_one_or_none()
 
 
 @router.get("/signup")
@@ -33,13 +25,13 @@ def signup(
     password: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    email = email.strip().lower()
+    email = normalize_email(email)
     error = None
-    if not email or "@" not in email:
+    if not is_valid_email(email):
         error = "Ingresá un email válido."
-    elif len(password) < MIN_PASSWORD:
-        error = f"La contraseña necesita al menos {MIN_PASSWORD} caracteres."
-    elif _find_by_email(db, email) is not None:
+    elif len(password) < MIN_PASSWORD_LENGTH:
+        error = f"La contraseña necesita al menos {MIN_PASSWORD_LENGTH} caracteres."
+    elif find_by_email(db, email) is not None:
         error = "Ese email ya está registrado."
 
     if error:
@@ -68,8 +60,8 @@ def login(
     password: str = Form(""),
     db: Session = Depends(get_db),
 ):
-    email = email.strip().lower()
-    user = _find_by_email(db, email)
+    email = normalize_email(email)
+    user = find_by_email(db, email)
     if user is None or not verify_password(password, user.password_hash):
         return templates.TemplateResponse(
             request,

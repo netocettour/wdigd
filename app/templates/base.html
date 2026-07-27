@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,200..900;1,7..72,200..900&family=Work+Sans:ital,wght@0,300..700;1,300..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/main.css?v={{ asset_version('css/main.css') }}">
+  {# Va inline y antes del body a propósito: el tema tiene que aplicarse antes del primer pintado. #}
   <script>
     (function(){var m=document.cookie.match(/(?:^|; )theme=(light|dark)/);if(m)document.documentElement.style.colorScheme=m[1]})()
   </script>

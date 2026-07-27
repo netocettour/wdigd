@@ -1,4 +1,8 @@
+"""Hash y verificación de contraseñas."""
+
 from passlib.context import CryptContext
+
+MIN_PASSWORD_LENGTH = 8
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

@@ -1,28 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Hoy · wdigd{% endblock %}
 {% block content %}
-<script>
-(function(){
-  var loaded = "{{ today_iso }}";
-  function check(){ if(new Date().toLocaleDateString("sv-SE")!==loaded) location.reload(); }
-  var ms = new Date(loaded+"T00:00:00");
-  ms.setDate(ms.getDate()+1);
-  ms = ms - Date.now();
-  if(ms > 0) setTimeout(check, ms + 500);
-  document.addEventListener("visibilitychange", function(){ if(!document.hidden) check(); });
-})();
-</script>
-{% if prioridades %}
+{# Si la pestaña queda abierta y pasa la medianoche, app.js recarga la página. #}
+<div class="js-day-rollover" data-date="{{ today_iso }}" hidden></div>
+
+{% if priorities %}
 <details class="prio-block" open>
   <summary>Prioridades de la semana</summary>
   <div class="prio-chips">
-    {% for p in prioridades %}<span class="chip-prio">{{ p }}</span>{% endfor %}
+    {% for p in priorities %}<span class="chip-prio">{{ p }}</span>{% endfor %}
   </div>
 </details>
 {% endif %}
 
 <header class="day-header">
-  <div class="day-date">{{ fecha }}</div>
+  <div class="day-date">{{ date_label }}</div>
   <h1 class="day-title">¿Qué lograste hoy?</h1>
 </header>
 
@@ -65,7 +57,7 @@
   <div class="prev-day">
     <div class="prev-day-name">{{ d.day }}</div>
     <div class="prev-day-items">
-      {% for it in d["items"] %}<div class="prev-item">{{ it }}</div>{% endfor %}
+      {% for text in d.rows %}<div class="prev-item">{{ text }}</div>{% endfor %}
     </div>
   </div>
   {% endfor %}
