@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.capture import entries_between, entries_for_date
@@ -23,11 +24,26 @@ def _find_note(db: Session, user: User, day: date) -> DailyNote | None:
 
 
 def _get_or_create_note(db: Session, user: User, day: date) -> DailyNote:
+    """Devuelve la nota del día, creándola si todavía no existe.
+
+    Dos pedidos casi simultáneos del mismo usuario (doble click en "Cerrar el
+    día", o el autoguardado de la nota pisándose con el cierre) llegan los dos
+    sin encontrar la fila e intentan crearla. El segundo INSERT espera en el
+    índice único y falla cuando el primero commitea; el savepoint deja la sesión
+    usable para releer la fila que quedó.
+    """
     note = _find_note(db, user, day)
-    if note is None:
-        note = DailyNote(user_id=user.id, note_date=day)
-        db.add(note)
-        db.flush()
+    if note is not None:
+        return note
+
+    try:
+        with db.begin_nested():
+            note = DailyNote(user_id=user.id, note_date=day)
+            db.add(note)
+    except IntegrityError:
+        note = _find_note(db, user, day)
+        if note is None:
+            raise
     return note
 
 
