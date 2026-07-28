@@ -476,6 +476,12 @@ a:hover {
   border-color: var(--input-border-focus);
 }
 
+/* Mientras el POST viaja: el botón queda quieto, sin invitar a un segundo click. */
+:where(.day-close-btn, .day-reopen-link):disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .day-closed {
   margin-top: 24px;
   text-align: center;

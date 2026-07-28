@@ -38,13 +38,13 @@
 {% if closed %}
 <div class="day-closed">
   <span class="day-closed-text">Día cerrado</span>
-  <form method="post" action="/today/reopen" class="day-closed-form">
+  <form method="post" action="/today/reopen" class="day-closed-form js-once">
     <button type="submit" class="day-reopen-link">Reabrir</button>
   </form>
 </div>
 {% else %}
 <div class="day-close-action">
-  <form method="post" action="/today/close">
+  <form method="post" action="/today/close" class="js-once">
     <button type="submit" class="day-close-btn">Cerrar el día</button>
   </form>
 </div>

@@ -279,6 +279,41 @@ function wdigdCycleAlign(btn) {
   }, WDIGD_ALIGN_DELAY);
 }
 
+// — Formularios que no se mandan dos veces —
+//
+// "Cerrar el día" y "Reabrir" son POST planos: dos clicks seguidos mandan dos
+// pedidos que compiten por crear la misma nota. El backend ya lo tolera; esto
+// evita el pedido de más y el parpadeo de dos redirects.
+
+function wdigdSubmitButtons(form) {
+  return form.querySelectorAll("button[type=submit]");
+}
+
+document.addEventListener("submit", function (e) {
+  const form = e.target;
+  if (!form.classList || !form.classList.contains("js-once")) return;
+  if (form.dataset.submitted) {
+    e.preventDefault();
+    return;
+  }
+  form.dataset.submitted = "1";
+  // Deshabilitar recién en el próximo tick: un botón disabled durante el evento
+  // submit puede quedar afuera de los datos enviados.
+  setTimeout(function () {
+    wdigdSubmitButtons(form).forEach(function (btn) { btn.disabled = true; });
+  }, 0);
+});
+
+// Al volver con el botón "atrás" el navegador puede restaurar la página tal cual
+// quedó, con el botón deshabilitado.
+window.addEventListener("pageshow", function (e) {
+  if (!e.persisted) return;
+  document.querySelectorAll("form.js-once").forEach(function (form) {
+    delete form.dataset.submitted;
+    wdigdSubmitButtons(form).forEach(function (btn) { btn.disabled = false; });
+  });
+});
+
 // — Cambio de día con la pestaña abierta —
 //
 // /today se renderiza para un día concreto: si pasa la medianoche (o la pestaña
