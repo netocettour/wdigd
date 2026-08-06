@@ -116,6 +116,16 @@ document.addEventListener("keydown", function (e) {
   wdigdAutolistBusy = false;
 });
 
+// — Wizard de /week: navegación entre pasos —
+
+function wdigdWizardStep(step) {
+  var page = document.getElementById("wk-page");
+  if (!page) return;
+  page.dataset.step = step;
+  window.scrollTo({ top: 0, behavior: "instant" });
+  wdigdGrowAll();
+}
+
 // — Título de /week —
 //
 // El H1 es el nombre de la semana. Sin nombre muestra el rango de fechas como
@@ -357,6 +367,46 @@ document.addEventListener("pointercancel", function (e) {
   if (wdigdDragState) wdigdDragEnd();
 });
 
+// — Feedback visual de atajos de categoría en el input de captura —
+
+const WDIGD_QUICK_LABELS = { "/l": "Logro", "/a": "Avance", "/d": "Desbloqueo" };
+
+function wdigdDetectShortcut(value) {
+  var lower = value.toLowerCase();
+  var cmds = ["/l", "/a", "/d"];
+  for (var i = 0; i < cmds.length; i++) {
+    var cmd = cmds[i];
+    if (lower === cmd || lower.indexOf(cmd + " ") === 0 || (lower.length > cmd.length && lower.slice(-(cmd.length + 1)) === " " + cmd)) {
+      return WDIGD_QUICK_LABELS[cmd];
+    }
+  }
+  return null;
+}
+
+function wdigdGetCaptureHint(form) {
+  var hint = form.querySelector(".capture-hint");
+  if (!hint) {
+    hint = document.createElement("div");
+    hint.className = "capture-hint";
+    form.appendChild(hint);
+  }
+  return hint;
+}
+
+document.addEventListener("input", function (e) {
+  var input = e.target;
+  if (input.tagName !== "INPUT" || !input.closest(".capture-form")) return;
+  var form = input.closest(".capture-form");
+  var hint = wdigdGetCaptureHint(form);
+  var label = wdigdDetectShortcut(input.value.trim());
+  if (label) {
+    hint.textContent = "→ " + label;
+    hint.classList.add("visible");
+  } else {
+    hint.classList.remove("visible");
+  }
+});
+
 // — Alinear un bullet con una prioridad de la semana —
 //
 // Cada tap cicla la etiqueta EN EL LUGAR (el bullet no se mueve) mostrando la
@@ -433,16 +483,25 @@ document.addEventListener("submit", function (e) {
   }, 0);
 });
 
-// "Cerrar el día" es un POST plano (recarga entera): antes de irse, la página
-// se asienta un instante en vez de cortar seco al estado cerrado.
+// "Cerrar el día" y "Cerrar la semana" son POST planos (recarga entera): antes
+// de irse, la página se asienta un instante en vez de cortar seco.
 document.addEventListener("submit", function (e) {
   const form = e.target;
-  if (!form.classList || !form.classList.contains("js-day-close")) return;
+  if (!form.classList) return;
+  var page, cls;
+  if (form.classList.contains("js-day-close")) {
+    page = document.getElementById("today-page");
+    cls = "is-closing";
+  } else if (form.classList.contains("js-week-close")) {
+    page = document.querySelector(".wk-page");
+    cls = "is-closing";
+  } else {
+    return;
+  }
   if (form.dataset.closing) return;
   form.dataset.closing = "1";
   e.preventDefault();
-  const page = document.getElementById("today-page");
-  if (page) page.classList.add("is-closing");
+  if (page) page.classList.add(cls);
   setTimeout(function () { form.submit(); }, 380);
 });
 

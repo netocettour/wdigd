@@ -1,20 +1,21 @@
-"""Material de la sesión semanal: bloques 1 (resumen), 2 (observaciones) y 3 (highlights).
+"""Material de la sesión semanal: resumen, highlights y notas del día.
 
 Es el fragmento que se recarga entero por HTMX cada vez que cambia algo de la
 semana, así que lo arma un solo lugar y lo usan tanto /week como los endpoints de
 bullets y highlights.
 """
 
+from datetime import timedelta
+
 from fastapi import Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.capture import entries_for_week
-from app.models import CATEGORY_LABELS, Achievement, Entry, User, WeeklyReview
-from app.observations import week_observations
+from app.models import CATEGORY_LABELS, Achievement, DailyNote, Entry, User, WeeklyReview
 from app.priorities import priorities_for_week
 from app.templating import templates
-from app.weeks import DIAS_ABBR, parse_iso_week, week_monday
+from app.weeks import DAYS_IN_WEEK, DIAS, DIAS_ABBR, parse_iso_week, week_monday
 
 FUERA = "Fuera de las prioridades de la semana"
 SIN_PRIORIDAD = "Fuera de prioridades"
@@ -72,6 +73,27 @@ def _highlights(db: Session, review: WeeklyReview) -> tuple[list[dict], dict[int
             }
         )
     return highlights, promoted
+
+
+def _daily_notes_for_week(db: Session, user: User, monday):
+    sunday = monday + timedelta(days=DAYS_IN_WEEK - 1)
+    notes = list(
+        db.execute(
+            select(DailyNote).where(
+                DailyNote.user_id == user.id,
+                DailyNote.note_date >= monday,
+                DailyNote.note_date <= sunday,
+                DailyNote.text != "",
+            ).order_by(DailyNote.note_date)
+        ).scalars()
+    )
+    return [
+        {
+            "day_name": DIAS[n.note_date.weekday()],
+            "text": n.text,
+        }
+        for n in notes
+    ]
 
 
 def _meta_mode(entry: Entry, *, aligned: bool, editable: bool, can_align: bool) -> str:
@@ -150,7 +172,7 @@ def material_context(db: Session, user: User, iso: str) -> dict:
         "highlights": highlights,
         "priorities": priorities,
         "can_align": can_align,
-        "observations": week_observations(db, user, iso_year, iso_week, entries),
+        "daily_notes": _daily_notes_for_week(db, user, monday),
     }
 
 

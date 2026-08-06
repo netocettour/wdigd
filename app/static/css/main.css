@@ -310,6 +310,19 @@ a:hover {
   line-height: 1.5;
 }
 
+.capture-hint {
+  font-size: 13px;
+  color: light-dark(#8a7e6e, #9e9484);
+  padding: 4px 2px 0;
+  height: 22px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.capture-hint.visible {
+  opacity: 1;
+}
+
 .bullet {
   display: flex;
   flex-direction: column;
@@ -652,11 +665,6 @@ textarea.wk-title-input:focus {
   color: var(--muted);
 }
 
-.wk-closed-line {
-  font-size: 13.5px;
-  color: var(--muted);
-}
-
 .wk-nav {
   display: flex;
   justify-content: space-between;
@@ -690,13 +698,6 @@ textarea.wk-title-input:focus {
   display: flex;
   flex-direction: column;
   gap: 3px;
-}
-
-.wk-num {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: light-dark(#b08d6d, #9a7458);
 }
 
 .wk-heading h2 {
@@ -832,19 +833,6 @@ textarea.wk-title-input:focus {
   align-self: flex-start;
 }
 
-.wk-obs {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.wk-obs p {
-  margin: 0;
-  font-size: 14.5px;
-  line-height: 1.55;
-  color: light-dark(#4c443a, #c9c0b1);
-}
-
 /* Logros */
 
 .ach-list {
@@ -866,19 +854,6 @@ textarea.wk-title-input:focus {
   flex-direction: column;
   gap: 3px;
   flex: 1;
-}
-
-input.ach-input {
-  width: 100%;
-  font-family: var(--serif);
-  font-size: 17px;
-  line-height: 1.45;
-  border: none;
-  background: transparent;
-  color: inherit;
-  outline: none;
-  padding: 0;
-  border-radius: 0;
 }
 
 .ach-text {
@@ -978,6 +953,190 @@ input.ach-input {
 
 .narrative-ro li {
   margin-bottom: 4px;
+}
+
+/* Wizard de la sesión semanal */
+
+#wk-page[data-step="1"] .wk-step-reflexionar,
+#wk-page[data-step="2"] .wk-step-revisar {
+  display: none;
+}
+
+.wk-step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.wk-step-dot {
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--muted-2);
+  cursor: pointer;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.wk-step-dot:hover {
+  color: var(--accent);
+}
+
+#wk-page[data-step="1"] .wk-step-dot-1,
+#wk-page[data-step="2"] .wk-step-dot-2 {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.wk-step-sep {
+  width: 20px;
+  height: 1px;
+  background: var(--border);
+}
+
+.wk-wizard-nav {
+  padding-top: 12px;
+}
+
+.wk-wizard-nav-back {
+  padding-top: 0;
+  padding-bottom: 8px;
+}
+
+.wk-wizard-btn {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: var(--accent-strong);
+  color: #f6f1e8;
+}
+
+.wk-wizard-back {
+  font-family: var(--sans);
+  font-size: 13px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.wk-wizard-back:hover {
+  color: var(--accent);
+}
+
+/* Notas del día en /week */
+
+.wk-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wk-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wk-note-day {
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.wk-note-text {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+
+.wk-note-text ul,
+.wk-note-text ol {
+  margin: 4px 0;
+  padding-left: 22px;
+}
+
+.wk-note-text li {
+  margin-bottom: 2px;
+}
+
+/* Cerrar la semana */
+
+.wk-close-action {
+  padding-top: 12px;
+  text-align: center;
+}
+
+.wk-page.is-closing {
+  opacity: 0.35;
+  filter: saturate(0.6) blur(2px);
+  transition: opacity 0.4s ease, filter 0.4s ease;
+}
+
+/* Semana cerrada: hero */
+
+.wk-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 24px 20px;
+}
+
+.wk-done-kicker {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.wk-done-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text-soft);
+}
+
+.wk-done-sub {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.wk-done-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.wk-done-start {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 26px;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  color: #f6f1e8;
+  text-decoration: none;
+}
+
+.wk-done-start:hover {
+  color: #f6f1e8;
+  opacity: 0.9;
 }
 
 /* Historial */

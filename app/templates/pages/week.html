@@ -1,7 +1,55 @@
 {% extends "base.html" %}
 {% block title %}{{ review.name or label }} · wdigd{% endblock %}
 {% block content %}
+
+{% if closed %}
+{# — Semana cerrada: hero + contenido en vista plana — #}
 <div class="wk-page">
+  <div class="wk-done">
+    <div class="wk-done-kicker">Sesión semanal</div>
+    <h1 class="wk-done-title">{{ review.name or label }}</h1>
+    {% if review.name %}
+    <div class="wk-done-sub">{{ label }}</div>
+    {% endif %}
+    <div class="wk-done-actions">
+      <a href="/today" class="wk-done-start">Empezar el día</a>
+      <form method="post" action="/week/{{ iso }}/reopen" class="js-once">
+        <button type="submit" class="day-reopen-link">Reabrir la semana</button>
+      </form>
+    </div>
+  </div>
+
+  <nav class="wk-nav">
+    <a href="/week/{{ prev_iso }}">← semana anterior</a>
+    {% if next_iso %}<a href="/week/{{ next_iso }}">semana siguiente →</a>{% endif %}
+  </nav>
+
+  {% include "components/week_material.html" %}
+
+  <section class="wk-section" id="journal">
+    <div class="wk-heading">
+      <h2>Journal semanal</h2>
+    </div>
+    <div class="narrative-ro">{{ (review.narrative or "—")|narrative }}</div>
+  </section>
+
+  {% if review_priorities %}
+  <section class="wk-section" id="prioridades">
+    <div class="wk-heading">
+      <h2>Prioridades para la semana siguiente</h2>
+    </div>
+    <div class="prio-chips">
+      {% for p in review_priorities %}
+      <span class="chip-prio">{{ p }}</span>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+{% else %}
+{# — Semana abierta: wizard de 2 pasos — #}
+<div class="wk-page" id="wk-page" data-step="1">
   <header class="wk-header">
     <div class="wk-kicker">Sesión semanal</div>
     <h1 class="wk-title">
@@ -11,63 +59,54 @@
         hx-patch="/week/{{ iso }}" hx-trigger="keyup changed delay:700ms, change" hx-swap="none">{{ review.name }}</textarea>
     </h1>
     <div class="wk-title-sub"{% if not review.name %} hidden{% endif %}>{{ label }}</div>
-    {% if closed %}
-    <div class="wk-closed-line">
-      Semana cerrada ·
-      <form method="post" action="/week/{{ iso }}/reopen" class="inline-form">
-        <button type="submit" class="link-accent">reabrir</button>
-      </form>
-    </div>
-    {% endif %}
     <nav class="wk-nav">
       <a href="/week/{{ prev_iso }}">← semana anterior</a>
       {% if next_iso %}<a href="/week/{{ next_iso }}">semana siguiente →</a>{% endif %}
     </nav>
+    <div class="wk-step-indicator">
+      <span class="wk-step-dot wk-step-dot-1" onclick="wdigdWizardStep(1)">Revisar</span>
+      <span class="wk-step-sep"></span>
+      <span class="wk-step-dot wk-step-dot-2" onclick="wdigdWizardStep(2)">Reflexionar</span>
+    </div>
   </header>
 
   {% include "components/week_material.html" %}
 
-  <section class="wk-section" id="journal">
-    <div class="wk-heading">
-      <div class="wk-num">4</div>
-      <h2>Journal semanal</h2>
-      <div class="wk-journal-sub">Tus sensaciones sobre: ritmo de trabajo diario, interacciones importantes y enfoque estratégico.</div>
-    </div>
-    {% if not closed %}
-    <textarea class="narrative-input js-autolist js-autogrow" name="narrative" rows="5" placeholder="Una página en blanco."
-      hx-patch="/week/{{ iso }}" hx-trigger="keyup changed delay:700ms" hx-swap="none">{{ review.narrative }}</textarea>
-    {% else %}
-    <div class="narrative-ro">{{ (review.narrative or "—")|narrative }}</div>
-    {% endif %}
-  </section>
-
-  <section class="wk-section" id="prioridades">
-    <div class="wk-heading">
-      <div class="wk-num">5</div>
-      <h2>Prioridades para la semana que viene</h2>
-      <p class="wk-sub">Enter para agregar. El lunes aparecen en la pantalla de captura.</p>
-    </div>
-    {% if not closed %}
-    <div class="prio-editor" data-url="/week/{{ iso }}">
-      <div class="prio-chips">
-        {% for p in review_priorities %}
-        <span class="chip-prio chip-edit" data-text="{{ p }}">{{ p }}<button type="button"
-            class="chip-x" title="Quitar">×</button></span>
-        {% endfor %}
+  {# — Paso 2: journal + prioridades + cerrar (fuera de #week-material) — #}
+  <div class="wk-step wk-step-reflexionar">
+    <section class="wk-section" id="journal">
+      <div class="wk-heading">
+        <h2>Journal semanal</h2>
+        <div class="wk-journal-sub">Tus sensaciones sobre: ritmo de trabajo diario, interacciones importantes y enfoque estratégico.</div>
       </div>
-      <input class="prio-input" autocomplete="off" placeholder="Agregar una prioridad"
-        onkeydown="wdigdPriorityKey(event, this)">
+      <textarea class="narrative-input js-autolist js-autogrow" name="narrative" rows="5" placeholder="Una página en blanco."
+        hx-patch="/week/{{ iso }}" hx-trigger="keyup changed delay:700ms" hx-swap="none">{{ review.narrative }}</textarea>
+    </section>
+
+    <section class="wk-section" id="prioridades">
+      <div class="wk-heading">
+        <h2>Prioridades para la semana que viene</h2>
+        <p class="wk-sub">Enter para agregar. El lunes aparecen en la pantalla de captura.</p>
+      </div>
+      <div class="prio-editor" data-url="/week/{{ iso }}">
+        <div class="prio-chips">
+          {% for p in review_priorities %}
+          <span class="chip-prio chip-edit" data-text="{{ p }}">{{ p }}<button type="button"
+              class="chip-x" title="Quitar">×</button></span>
+          {% endfor %}
+        </div>
+        <input class="prio-input" autocomplete="off" placeholder="Agregar una prioridad"
+          onkeydown="wdigdPriorityKey(event, this)">
+      </div>
+    </section>
+
+    <div class="wk-close-action">
+      <form method="post" action="/week/{{ iso }}/close" class="js-once js-week-close">
+        <button type="submit" class="button-primary">Cerrar la semana</button>
+      </form>
     </div>
-    <form method="post" action="/week/{{ iso }}/close">
-      <button type="submit" class="button-primary">Cerrar la semana</button>
-    </form>
-    {% else %}
-    <div class="prio-chips">
-      {% for p in review_priorities %}
-      <span class="chip-prio">{{ p }}</span>
-      {% endfor %}
-    </div>
-    {% endif %}
-  </section>
+  </div>
 </div>
+{% endif %}
+
 {% endblock %}
