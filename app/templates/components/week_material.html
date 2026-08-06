@@ -1,9 +1,100 @@
 {% import "components/macros.html" as m %}
 <div id="week-material" data-priorities='{{ priorities|tojson }}'>
 
+{% if editable %}
+  {# — Paso 1: Revisar — #}
+  <div class="wk-step wk-step-revisar">
+    <section class="wk-section" id="resumen">
+      <div class="wk-heading">
+        <h2>Resumen de la semana</h2>
+      </div>
+      {% if not groups %}
+      <p class="empty-hint">No hay bullets esta semana.</p>
+      {% endif %}
+      <div class="wk-groups">
+        {% for g in groups %}
+        <div class="wk-group{% if g.is_fuera %} fuera{% endif %}">
+          <div class="wk-group-name">{{ g.name }}</div>
+          {% if g.is_fuera %}
+          <div class="wk-fuera-note">Nada de esto empuja las prioridades que definiste el domingo. Puede ser una señal.</div>
+          {% endif %}
+          <div class="wk-rows">
+            {% for r in g.rows %}
+            <div class="wk-row clickable"
+              {% if r.promoted %}hx-delete="/achievements/{{ r.achievement_id }}?iso={{ iso }}"{% else %}hx-post="/achievements" hx-vals='{"iso_week": "{{ iso }}", "entry_id": "{{ r.id }}"}'{% endif %}
+              hx-target="#week-material" hx-swap="outerHTML"
+              title="{{ 'Quitar highlight' if r.promoted else 'Destacar como highlight' }}">
+              <span class="wk-star{% if r.promoted %} wk-star-on{% endif %}">{{ "★" if r.promoted else "☆" }}</span>
+              <span class="wk-day">{{ r.day_abbr }}</span>
+              <div class="wk-body">
+                <div class="wk-text">{{ r.text }}{% if r.promoted %} <span class="wk-highlight-tag">→ highlight</span>{% endif %}</div>
+                {% if r.meta == "chips" %}
+                <div class="bullet-meta">{{ m.cat_chips(r, "#week-material", "?ctx=week&iso=" ~ iso) }}</div>
+                {% elif r.meta == "category" %}
+                <div class="wk-cat-ro">{{ r.category_label }}</div>
+                {% elif r.meta == "align" %}
+                <div>{{ m.align_button(r.id, r.priority_label, "#week-material", "?ctx=week&iso=" ~ iso) }}</div>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    {% if daily_notes %}
+    <section class="wk-section" id="notas-dia">
+      <div class="wk-heading">
+        <h2>Notas del día</h2>
+      </div>
+      <div class="wk-notes">
+        {% for n in daily_notes %}
+        <div class="wk-note">
+          <div class="wk-note-day">{{ n.day_name }}</div>
+          <div class="wk-note-text">{{ n.text|narrative }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <div class="wk-wizard-nav">
+      <button type="button" class="wk-wizard-btn" onclick="wdigdWizardStep(2)">Reflexionar →</button>
+    </div>
+  </div>
+
+  {# — Paso 2: parte que vive dentro de #week-material (highlights) — #}
+  <div class="wk-step wk-step-reflexionar">
+    <div class="wk-wizard-nav wk-wizard-nav-back">
+      <button type="button" class="wk-wizard-back" onclick="wdigdWizardStep(1)">← Revisar</button>
+    </div>
+
+    {% if highlights %}
+    <section class="wk-section" id="highlights">
+      <div class="wk-heading">
+        <h2>Highlights de la semana</h2>
+      </div>
+      <div class="ach-list">
+        {% for h in highlights %}
+        <div class="ach">
+          <div class="ach-body">
+            <div class="ach-text">{{ h.text }}</div>
+            {% if h.priority_labels %}<div class="ach-prios">{{ h.priority_labels }}</div>{% endif %}
+          </div>
+          <button type="button" class="bullet-x ach-x" hx-delete="/achievements/{{ h.id }}?iso={{ iso }}" hx-target="#week-material" hx-swap="outerHTML" title="Quitar highlight">×</button>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </div>
+
+{% else %}
+  {# — Semana cerrada: vista plana, todo junto — #}
   <section class="wk-section" id="resumen">
     <div class="wk-heading">
-      <div class="wk-num">1</div>
       <h2>Resumen de la semana</h2>
     </div>
     {% if not groups %}
@@ -13,27 +104,15 @@
       {% for g in groups %}
       <div class="wk-group{% if g.is_fuera %} fuera{% endif %}">
         <div class="wk-group-name">{{ g.name }}</div>
-        {% if g.is_fuera %}
-        <div class="wk-fuera-note">Nada de esto empuja las prioridades que definiste el domingo. Puede ser una señal.</div>
-        {% endif %}
         <div class="wk-rows">
           {% for r in g.rows %}
-          <div class="wk-row{% if editable %} clickable{% endif %}"
-            {% if editable %}
-            {% if r.promoted %}hx-delete="/achievements/{{ r.achievement_id }}?iso={{ iso }}"{% else %}hx-post="/achievements" hx-vals='{"iso_week": "{{ iso }}", "entry_id": "{{ r.id }}"}'{% endif %}
-            hx-target="#week-material" hx-swap="outerHTML"
-            title="{{ 'Quitar highlight' if r.promoted else 'Destacar como highlight' }}"
-            {% endif %}>
-            <span class="wk-star{% if r.promoted %} wk-star-on{% endif %}">{{ "★" if r.promoted else ("☆" if editable else "") }}</span>
+          <div class="wk-row">
+            <span class="wk-star{% if r.promoted %} wk-star-on{% endif %}">{{ "★" if r.promoted else "" }}</span>
             <span class="wk-day">{{ r.day_abbr }}</span>
             <div class="wk-body">
               <div class="wk-text">{{ r.text }}{% if r.promoted %} <span class="wk-highlight-tag">→ highlight</span>{% endif %}</div>
-              {% if r.meta == "chips" %}
-              <div class="bullet-meta">{{ m.cat_chips(r, "#week-material", "?ctx=week&iso=" ~ iso) }}</div>
-              {% elif r.meta == "category" %}
+              {% if r.meta == "category" %}
               <div class="wk-cat-ro">{{ r.category_label }}</div>
-              {% elif r.meta == "align" %}
-              <div>{{ m.align_button(r.id, r.priority_label, "#week-material", "?ctx=week&iso=" ~ iso) }}</div>
               {% endif %}
             </div>
           </div>
@@ -44,44 +123,39 @@
     </div>
   </section>
 
-  <section class="wk-section" id="observaciones">
-    <div class="wk-heading">
-      <div class="wk-num">2</div>
-      <h2>Observaciones</h2>
-    </div>
-    <div class="wk-obs">
-      {% for line in observations %}
-      <p>{{ line }}</p>
-      {% endfor %}
-    </div>
-  </section>
-
+  {% if highlights %}
   <section class="wk-section" id="highlights">
     <div class="wk-heading">
-      <div class="wk-num">3</div>
       <h2>Highlights de la semana</h2>
     </div>
-    {% if editable and not highlights %}
-    <p class="empty-hint">Tocá bullets del bloque 1 para destacarlos: cada uno aparece acá como highlight y su texto se puede dejar en limpio.</p>
-    {% endif %}
     <div class="ach-list">
       {% for h in highlights %}
       <div class="ach">
         <div class="ach-body">
-          {% if editable %}
-          <input class="ach-input" name="text" value="{{ h.text }}" autocomplete="off"
-            hx-patch="/achievements/{{ h.id }}" hx-trigger="change" hx-swap="none">
-          {% else %}
           <div class="ach-text">{{ h.text }}</div>
-          {% endif %}
           {% if h.priority_labels %}<div class="ach-prios">{{ h.priority_labels }}</div>{% endif %}
         </div>
-        {% if editable %}
-        <button type="button" class="bullet-x ach-x" hx-delete="/achievements/{{ h.id }}?iso={{ iso }}" hx-target="#week-material" hx-swap="outerHTML" title="Quitar highlight">×</button>
-        {% endif %}
       </div>
       {% endfor %}
     </div>
   </section>
+  {% endif %}
+
+  {% if daily_notes %}
+  <section class="wk-section" id="notas-dia">
+    <div class="wk-heading">
+      <h2>Notas del día</h2>
+    </div>
+    <div class="wk-notes">
+      {% for n in daily_notes %}
+      <div class="wk-note">
+        <div class="wk-note-day">{{ n.day_name }}</div>
+        <div class="wk-note-text">{{ n.text|narrative }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+{% endif %}
 
 </div>
