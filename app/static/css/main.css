@@ -454,6 +454,15 @@ a:hover {
 
 /* Cerrar el día */
 
+.today-page {
+  transition: opacity 0.4s ease, filter 0.4s ease;
+}
+
+.today-page.is-closing {
+  opacity: 0.35;
+  filter: saturate(0.6) blur(2px);
+}
+
 .day-close-action {
   margin-top: 24px;
   text-align: center;
@@ -476,33 +485,52 @@ a:hover {
   border-color: var(--input-border-focus);
 }
 
-/* Mientras el POST viaja: el botón queda quieto, sin invitar a un segundo click. */
 :where(.day-close-btn, .day-reopen-link):disabled {
   opacity: 0.5;
   cursor: default;
 }
 
-.day-closed {
-  margin-top: 24px;
-  text-align: center;
+/* Pantalla de día cerrado */
+
+.day-done {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  text-align: center;
+  min-height: 55vh;
+  padding: 40px 24px;
 }
 
-.day-closed-text {
+.day-done-date {
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.day-done-title {
+  margin: 0;
   font-family: var(--serif);
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text-soft);
+}
+
+.day-done-count {
+  margin-top: 14px;
   font-size: 14px;
   color: var(--muted);
 }
 
-.day-closed-form {
-  display: inline;
+.day-done-footer {
+  margin-top: 48px;
 }
 
 .day-reopen-link {
-  font-family: var(--serif);
+  font-family: var(--sans);
   font-size: 13px;
   color: var(--muted-2);
   background: none;

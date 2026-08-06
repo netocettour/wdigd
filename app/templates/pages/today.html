@@ -4,6 +4,22 @@
 {# Si la pestaña queda abierta y pasa la medianoche, app.js recarga la página. #}
 <div class="js-day-rollover" data-date="{{ today_iso }}" hidden></div>
 
+{% if closed %}
+<div class="day-done">
+  <div class="day-done-date">{{ date_label }}</div>
+  <h1 class="day-done-title">Todo listo por hoy</h1>
+  {% if logros > 0 %}
+  <div class="day-done-count">{{ logros }} nuevo{{ 's' if logros != 1 }} logro{{ 's' if logros != 1 }} esta jornada</div>
+  {% endif %}
+  <div class="day-done-footer">
+    <form method="post" action="/today/reopen" class="js-once">
+      <button type="submit" class="day-reopen-link">Reabrir el día</button>
+    </form>
+  </div>
+</div>
+
+{% else %}
+<div id="today-page" class="today-page">
 {% if priorities %}
 <details class="prio-block" open>
   <summary>Prioridades de la semana</summary>
@@ -18,13 +34,11 @@
   <h1 class="day-title">¿Qué lograste hoy?</h1>
 </header>
 
-{% if not closed %}
 <form class="capture-form" hx-post="/entries" hx-target="#today-bullets" hx-swap="outerHTML"
   hx-on::after-request="if(event.detail.successful) this.reset()">
   <input name="text" placeholder="Un bullet por vez · Enter agrega" autocomplete="off" autofocus>
   <button type="submit" hidden></button>
 </form>
-{% endif %}
 
 {% include "components/bullets_today.html" %}
 
@@ -32,23 +46,14 @@
   <label class="daily-note-label" for="daily-note">¿Qué te gustaría recordar del día de hoy?</label>
   <textarea id="daily-note" class="daily-note-input js-autolist js-autogrow" name="text" rows="3"
     hx-patch="/today/note" hx-trigger="keyup changed delay:700ms" hx-swap="none"
-    placeholder="Algo que quieras anotar... (* para una lista)"{% if closed %} disabled{% endif %}>{{ note }}</textarea>
+    placeholder="Algo que quieras anotar... (* para una lista)">{{ note }}</textarea>
 </div>
 
-{% if closed %}
-<div class="day-closed">
-  <span class="day-closed-text">Día cerrado</span>
-  <form method="post" action="/today/reopen" class="day-closed-form js-once">
-    <button type="submit" class="day-reopen-link">Reabrir</button>
-  </form>
-</div>
-{% else %}
 <div class="day-close-action">
-  <form method="post" action="/today/close" class="js-once">
+  <form method="post" action="/today/close" class="js-once js-day-close">
     <button type="submit" class="day-close-btn">Cerrar el día</button>
   </form>
 </div>
-{% endif %}
 
 {% if prev_days %}
 <div class="prev-days">
@@ -61,6 +66,8 @@
     </div>
   </div>
   {% endfor %}
+</div>
+{% endif %}
 </div>
 {% endif %}
 {% endblock %}
