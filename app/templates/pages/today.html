@@ -35,7 +35,7 @@
 </header>
 
 <form class="capture-form" hx-post="/entries" hx-target="#today-bullets" hx-swap="outerHTML"
-  hx-on::after-request="if(event.detail.successful) this.reset()">
+  hx-on::after-request="if(event.detail.successful){ this.reset(); var h=this.querySelector('.capture-hint'); if(h) h.classList.remove('visible'); }">
   <input name="text" placeholder="Un bullet por vez · Enter agrega" autocomplete="off" autofocus>
   <button type="submit" hidden></button>
 </form>
