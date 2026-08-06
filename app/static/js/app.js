@@ -304,6 +304,19 @@ document.addEventListener("submit", function (e) {
   }, 0);
 });
 
+// "Cerrar el día" es un POST plano (recarga entera): antes de irse, la página
+// se asienta un instante en vez de cortar seco al estado cerrado.
+document.addEventListener("submit", function (e) {
+  const form = e.target;
+  if (!form.classList || !form.classList.contains("js-day-close")) return;
+  if (form.dataset.closing) return;
+  form.dataset.closing = "1";
+  e.preventDefault();
+  const page = document.getElementById("today-page");
+  if (page) page.classList.add("is-closing");
+  setTimeout(function () { form.submit(); }, 380);
+});
+
 // Al volver con el botón "atrás" el navegador puede restaurar la página tal cual
 // quedó, con el botón deshabilitado.
 window.addEventListener("pageshow", function (e) {

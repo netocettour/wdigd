@@ -78,6 +78,9 @@ def today_page(
     priorities = priorities_for_week(db, user, iso.year, iso.week)
     note = _find_note(db, user, today)
 
+    bullets = entries_for_date(db, user, today)
+    logros = sum(1 for b in bullets if b.category == "logro")
+
     return templates.TemplateResponse(
         request,
         "pages/today.html",
@@ -85,7 +88,8 @@ def today_page(
             "user": user,
             "date_label": fecha_larga(today),
             "today_iso": today.isoformat(),
-            "bullets": entries_for_date(db, user, today),
+            "bullets": bullets,
+            "logros": logros,
             "prev_days": _days_before_today(db, user, today),
             "priorities": priorities,
             "can_align": bool(priorities),
