@@ -925,6 +925,23 @@ input.ach-input {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.chip-dragging {
+  cursor: grabbing;
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.chip-placeholder {
+  border: 1.5px dashed light-dark(#ccc0a8, #4a4030) !important;
+  background: transparent !important;
+  border-radius: 999px;
+  box-sizing: border-box;
 }
 
 .chip-x {
