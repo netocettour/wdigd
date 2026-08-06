@@ -228,6 +228,135 @@ function wdigdPriorityKey(e, input) {
   }
 }
 
+// — Drag & drop para reordenar prioridades —
+
+var wdigdDragState = null;
+
+function wdigdDragStart(chip, x, y) {
+  var editor = chip.closest(".prio-editor");
+  var chips = editor.querySelector(".prio-chips");
+  var rect = chip.getBoundingClientRect();
+
+  var placeholder = document.createElement("span");
+  placeholder.className = "chip-prio chip-placeholder";
+  placeholder.style.width = rect.width + "px";
+  placeholder.style.height = rect.height + "px";
+  chips.insertBefore(placeholder, chip);
+
+  chip.classList.add("chip-dragging");
+  chip.style.width = rect.width + "px";
+  chip.style.position = "fixed";
+  chip.style.zIndex = "9999";
+  chip.style.pointerEvents = "none";
+  chip.style.left = rect.left + "px";
+  chip.style.top = rect.top + "px";
+
+  wdigdDragState = {
+    chip: chip,
+    editor: editor,
+    chips: chips,
+    placeholder: placeholder,
+    offsetX: x - rect.left,
+    offsetY: y - rect.top,
+  };
+}
+
+function wdigdDragMove(x, y) {
+  var s = wdigdDragState;
+  if (!s) return;
+  s.chip.style.left = (x - s.offsetX) + "px";
+  s.chip.style.top = (y - s.offsetY) + "px";
+
+  var siblings = Array.from(s.chips.querySelectorAll(".chip-edit:not(.chip-dragging), .chip-placeholder"));
+  var inserted = false;
+  for (var i = 0; i < siblings.length; i++) {
+    var sib = siblings[i];
+    if (sib === s.placeholder) continue;
+    var r = sib.getBoundingClientRect();
+    var cx = r.left + r.width / 2;
+    var cy = r.top + r.height / 2;
+    var sameRow = Math.abs(y - cy) < r.height * 0.8;
+    if (sameRow ? x < cx : y < cy) {
+      s.chips.insertBefore(s.placeholder, sib);
+      inserted = true;
+      break;
+    }
+  }
+  if (!inserted) {
+    s.chips.appendChild(s.placeholder);
+  }
+}
+
+function wdigdDragEnd() {
+  var s = wdigdDragState;
+  if (!s) return;
+  wdigdDragState = null;
+
+  s.chip.classList.remove("chip-dragging");
+  s.chip.style.position = "";
+  s.chip.style.zIndex = "";
+  s.chip.style.pointerEvents = "";
+  s.chip.style.left = "";
+  s.chip.style.top = "";
+  s.chip.style.width = "";
+
+  s.chips.insertBefore(s.chip, s.placeholder);
+  s.placeholder.remove();
+  wdigdSavePriorities(s.editor);
+}
+
+document.addEventListener("pointerdown", function (e) {
+  var chip = e.target.closest && e.target.closest(".chip-edit");
+  if (!chip) return;
+  if (e.target.closest(".chip-x")) return;
+  if (!chip.closest(".prio-editor")) return;
+
+  e.preventDefault();
+
+  if (e.pointerType === "mouse") {
+    wdigdDragStart(chip, e.clientX, e.clientY);
+    chip.setPointerCapture(e.pointerId);
+  } else {
+    var pid = e.pointerId;
+    var sx = e.clientX;
+    var sy = e.clientY;
+    var holdTimer = setTimeout(function () {
+      holdTimer = null;
+      wdigdDragStart(chip, sx, sy);
+      chip.setPointerCapture(pid);
+    }, 200);
+    chip._holdTimer = holdTimer;
+    chip._holdCleanup = function () {
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        chip._holdTimer = null;
+      }
+    };
+  }
+});
+
+document.addEventListener("pointermove", function (e) {
+  if (wdigdDragState) {
+    e.preventDefault();
+    wdigdDragMove(e.clientX, e.clientY);
+  } else {
+    var chip = e.target.closest && e.target.closest(".chip-edit");
+    if (chip && chip._holdCleanup) chip._holdCleanup();
+  }
+});
+
+document.addEventListener("pointerup", function (e) {
+  var chip = e.target.closest && e.target.closest(".chip-edit");
+  if (chip && chip._holdCleanup) chip._holdCleanup();
+  if (wdigdDragState) wdigdDragEnd();
+});
+
+document.addEventListener("pointercancel", function (e) {
+  var chip = e.target.closest && e.target.closest(".chip-edit");
+  if (chip && chip._holdCleanup) chip._holdCleanup();
+  if (wdigdDragState) wdigdDragEnd();
+});
+
 // — Alinear un bullet con una prioridad de la semana —
 //
 // Cada tap cicla la etiqueta EN EL LUGAR (el bullet no se mueve) mostrando la
