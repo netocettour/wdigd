@@ -55,6 +55,10 @@
   </form>
 </div>
 
+{% if has_calendar %}
+<div hx-get="/today/calendar" hx-trigger="load" hx-swap="outerHTML"></div>
+{% endif %}
+
 {% if prev_days %}
 <div class="prev-days">
   <div class="prev-days-label">Antes esta semana</div>

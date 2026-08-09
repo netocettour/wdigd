@@ -4,8 +4,10 @@ Funciones puras (no tocan DB). Los routers son responsables de persistir lo
 que devuelven y de manejar los errores hacia la vista.
 """
 
+from datetime import date, datetime, time, timedelta
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
@@ -15,6 +17,7 @@ AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 CALENDAR_LIST_URL = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
+EVENTS_URL_TMPL = "https://www.googleapis.com/calendar/v3/calendars/{cal_id}/events"
 
 DEFAULT_CALENDAR_COLOR = "#4d7ec5"
 
@@ -109,6 +112,42 @@ def list_calendars(access_token: str) -> list[dict[str, Any]]:
     ]
 
 
+def list_events_for_day(
+    access_token: str,
+    calendars: list[dict[str, str]],
+    day: date,
+    tz_name: str,
+) -> list[dict[str, Any]]:
+    """Trae los eventos del día para cada calendario y los devuelve mergeados
+    y ordenados. `calendars` es una lista de {"id", "color"}. Cada evento sale
+    normalizado: {summary, start_label, is_all_day, color}. Los all-day quedan
+    primero, luego los timed por hora."""
+    try:
+        tz = ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        tz = ZoneInfo("UTC")
+
+    start_local = datetime.combine(day, time.min, tzinfo=tz)
+    end_local = datetime.combine(day + timedelta(days=1), time.min, tzinfo=tz)
+    time_min = start_local.isoformat()
+    time_max = end_local.isoformat()
+
+    events: list[dict[str, Any]] = []
+    for cal in calendars:
+        raw = _fetch_events(access_token, cal["id"], time_min, time_max)
+        for item in raw:
+            if item.get("status") == "cancelled":
+                continue
+            parsed = _normalize_event(item, tz)
+            if parsed is None:
+                continue
+            parsed["color"] = cal["color"]
+            events.append(parsed)
+
+    events.sort(key=lambda e: (not e["is_all_day"], e["sort_key"], e["summary"].lower()))
+    return events
+
+
 def get_user_email(access_token: str) -> str:
     """Trae el email de la cuenta que acaba de autorizar. Se usa una sola vez,
     en el callback, para etiquetar la conexión en /settings."""
@@ -148,6 +187,65 @@ def _post_token(data: dict[str, str]) -> dict[str, Any]:
     except httpx.RequestError as exc:
         raise CalendarAuthError("No pudimos hablar con Google.") from exc
     return response.json()
+
+
+def _fetch_events(
+    access_token: str,
+    calendar_id: str,
+    time_min: str,
+    time_max: str,
+) -> list[dict[str, Any]]:
+    url = EVENTS_URL_TMPL.format(cal_id=quote(calendar_id, safe=""))
+    try:
+        response = httpx.get(
+            url,
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={
+                "timeMin": time_min,
+                "timeMax": time_max,
+                "singleEvents": "true",
+                "orderBy": "startTime",
+                "maxResults": "50",
+            },
+            timeout=HTTP_TIMEOUT,
+        )
+        response.raise_for_status()
+    except httpx.TimeoutException as exc:
+        raise CalendarAuthError("Google no respondió a tiempo.") from exc
+    except httpx.HTTPStatusError as exc:
+        raise CalendarAuthError(
+            f"Google devolvió {exc.response.status_code} al pedir eventos."
+        ) from exc
+    except httpx.RequestError as exc:
+        raise CalendarAuthError("No pudimos hablar con Google.") from exc
+    return response.json().get("items", [])
+
+
+def _normalize_event(item: dict[str, Any], tz: ZoneInfo) -> dict[str, Any] | None:
+    """Convierte un evento crudo de Google a la forma que consume el template.
+    Devuelve None si el evento no tiene datos utilizables."""
+    summary = (item.get("summary") or "(sin título)").strip()
+    start = item.get("start") or {}
+
+    if "dateTime" in start:
+        try:
+            dt = datetime.fromisoformat(start["dateTime"]).astimezone(tz)
+        except ValueError:
+            return None
+        return {
+            "summary": summary,
+            "start_label": dt.strftime("%H:%M"),
+            "is_all_day": False,
+            "sort_key": dt.isoformat(),
+        }
+    if "date" in start:
+        return {
+            "summary": summary,
+            "start_label": "",
+            "is_all_day": True,
+            "sort_key": start["date"],
+        }
+    return None
 
 
 def _error_detail(response: httpx.Response) -> str:
