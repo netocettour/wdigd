@@ -688,6 +688,14 @@ textarea.wk-title-input:focus {
   gap: 48px;
 }
 
+/* El wizard tiene dos wrappers (uno por paso) donde stackean varias secciones.
+   Sin flex+gap, cada sección queda pegada a la anterior. */
+.wk-step {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
 .wk-section {
   display: flex;
   flex-direction: column;
@@ -697,7 +705,7 @@ textarea.wk-title-input:focus {
 .wk-heading {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
 }
 
 .wk-heading h2 {
@@ -708,13 +716,13 @@ textarea.wk-title-input:focus {
 }
 
 .wk-sub {
-  margin: 4px 0 0;
+  margin: 0;
   font-size: 13.5px;
   color: var(--muted-2);
 }
 
 .wk-journal-sub {
-  margin-top: 6px;
+  margin: 0;
   font-family: var(--serif);
   font-style: italic;
   font-size: 16px;
@@ -995,13 +1003,9 @@ textarea.wk-title-input:focus {
   background: var(--border);
 }
 
+/* Ya no hace falta padding: la separación viene del gap de .wk-step. */
 .wk-wizard-nav {
-  padding-top: 12px;
-}
-
-.wk-wizard-nav-back {
-  padding-top: 0;
-  padding-bottom: 8px;
+  padding: 0;
 }
 
 .wk-wizard-btn {
@@ -1071,7 +1075,6 @@ textarea.wk-title-input:focus {
 /* Cerrar la semana */
 
 .wk-close-action {
-  padding-top: 12px;
   text-align: center;
 }
 
@@ -1212,7 +1215,7 @@ textarea.wk-title-input:focus {
   display: flex;
   flex-direction: column;
   gap: 40px;
-  margin-top: 10px;
+  margin-top: 40px;
 }
 
 .settings-block {
