@@ -13,12 +13,15 @@ from app.calendar_google import (
     build_authorize_url,
     exchange_code,
     get_user_email,
+    list_calendars,
+    refresh_access_token,
 )
 from app.config import settings
-from app.crypto import encrypt
+from app.crypto import InvalidToken, decrypt, encrypt
 from app.db import get_db
 from app.deps import get_current_user
-from app.models import CalendarAccount, User
+from app.models import CalendarAccount, CalendarSource, User
+from app.templating import templates
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -52,6 +55,40 @@ def _verify_state(token: str, user_id: int) -> None:
         raise HTTPException(400, "State inválido.") from exc
     if payload.get("uid") != user_id:
         raise HTTPException(400, "State no corresponde a este usuario.")
+
+
+def _sync_sources(
+    account: CalendarAccount,
+    access_token: str,
+    db: Session,
+) -> None:
+    """Reconcilia CalendarSource con lo que devuelve Google. Los que ya existen
+    conservan su `selected`; los nuevos empiezan seleccionados solo si son el
+    calendario primario. Los que Google ya no lista se borran."""
+    remote = list_calendars(access_token)
+    existing = {s.google_calendar_id: s for s in account.sources}
+    remote_ids = {c["id"] for c in remote}
+
+    for cal in remote:
+        source = existing.get(cal["id"])
+        if source is None:
+            db.add(
+                CalendarSource(
+                    account_id=account.id,
+                    google_calendar_id=cal["id"],
+                    summary=cal["summary"],
+                    background_color=cal["background_color"],
+                    selected=cal["primary"],
+                )
+            )
+        else:
+            # Google puede cambiar nombre o color en cualquier momento.
+            source.summary = cal["summary"]
+            source.background_color = cal["background_color"]
+
+    for source in list(account.sources):
+        if source.google_calendar_id not in remote_ids:
+            db.delete(source)
 
 
 @router.get("/calendar/connect")
@@ -106,19 +143,67 @@ def calendar_callback(
         refresh_token_enc=encrypt(refresh_token),
     )
     db.add(account)
-    db.commit()
+    db.flush()
 
+    # Traer la lista de calendarios; si falla acá el usuario queda conectado
+    # sin sources y puede refrescar desde /settings.
+    try:
+        _sync_sources(account, access_token, db)
+    except CalendarAuthError as exc:
+        logger.warning("No pudimos traer calendarios de user %s: %s", user.id, exc)
+
+    db.commit()
     return RedirectResponse("/settings?calendar_ok=1", status_code=303)
 
 
-@router.post("/calendar/disconnect")
-def calendar_disconnect(
+@router.post("/calendar/refresh")
+def calendar_refresh(
     request: Request,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> Response:
+):
+    """Vuelve a pedir la lista de calendarios a Google. Se usa cuando el fetch
+    original falló o cuando el usuario agregó/quitó calendarios en Google."""
     account = db.query(CalendarAccount).filter_by(user_id=user.id).one_or_none()
-    if account is not None:
-        db.delete(account)
-        db.commit()
+    if account is None:
+        return RedirectResponse("/settings", status_code=303)
+
+    try:
+        refresh_token = decrypt(account.refresh_token_enc)
+    except InvalidToken:
+        logger.warning("refresh_token inválido (SECRET_KEY rotada?) para user %s", user.id)
+        return RedirectResponse("/settings?calendar_error=fallo", status_code=303)
+
+    try:
+        access_token = refresh_access_token(refresh_token)
+        _sync_sources(account, access_token, db)
+    except CalendarAuthError as exc:
+        logger.warning("Refresh de calendarios falló para user %s: %s", user.id, exc)
+        return RedirectResponse("/settings?calendar_error=fallo", status_code=303)
+
+    db.commit()
     return RedirectResponse("/settings", status_code=303)
+
+
+@router.post("/calendar/sources/{source_id}/toggle")
+def calendar_source_toggle(
+    request: Request,
+    source_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Prender/apagar un calendario. Endpoint HTMX: devuelve el fragmento del
+    row para reemplazar en su lugar."""
+    source = db.get(CalendarSource, source_id)
+    # Ownership: el source pertenece a la cuenta de este user.
+    if source is None or source.account.user_id != user.id:
+        raise HTTPException(404, "Calendario no encontrado.")
+
+    source.selected = not source.selected
+    db.commit()
+
+    return templates.TemplateResponse(
+        request,
+        "components/calendar_source_row.html",
+        {"source": source},
+    )

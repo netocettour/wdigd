@@ -14,6 +14,9 @@ from app.config import settings
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+CALENDAR_LIST_URL = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
+
+DEFAULT_CALENDAR_COLOR = "#4d7ec5"
 
 SCOPES = [
     "https://www.googleapis.com/auth/calendar.readonly",
@@ -71,6 +74,39 @@ def refresh_access_token(refresh_token: str) -> str:
     if not token:
         raise CalendarAuthError("La respuesta de Google no incluyó access_token.")
     return token
+
+
+def list_calendars(access_token: str) -> list[dict[str, Any]]:
+    """Lista de calendarios que el usuario tiene en su cuenta. Devuelve una
+    forma normalizada: [{"id", "summary", "background_color", "primary"}]."""
+    try:
+        response = httpx.get(
+            CALENDAR_LIST_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+            # minAccessRole=reader alcanza para leer eventos.
+            params={"minAccessRole": "reader"},
+            timeout=HTTP_TIMEOUT,
+        )
+        response.raise_for_status()
+    except httpx.TimeoutException as exc:
+        raise CalendarAuthError("Google no respondió a tiempo.") from exc
+    except httpx.HTTPStatusError as exc:
+        raise CalendarAuthError(
+            f"Google devolvió {exc.response.status_code} al pedir la lista de calendarios."
+        ) from exc
+    except httpx.RequestError as exc:
+        raise CalendarAuthError("No pudimos hablar con Google.") from exc
+
+    items = response.json().get("items", [])
+    return [
+        {
+            "id": item["id"],
+            "summary": item.get("summary") or item.get("summaryOverride") or item["id"],
+            "background_color": item.get("backgroundColor") or DEFAULT_CALENDAR_COLOR,
+            "primary": bool(item.get("primary")),
+        }
+        for item in items
+    ]
 
 
 def get_user_email(access_token: str) -> str:

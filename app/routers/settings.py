@@ -46,6 +46,11 @@ def _render(
     calendar_account = (
         db.query(CalendarAccount).filter_by(user_id=user.id).one_or_none()
     )
+    calendar_sources = (
+        sorted(calendar_account.sources, key=lambda s: (not s.selected, s.summary.lower()))
+        if calendar_account is not None
+        else []
+    )
     return templates.TemplateResponse(
         request,
         "pages/settings.html",
@@ -54,6 +59,7 @@ def _render(
             "timezones": TIMEZONES,
             "msgs": msgs or {},
             "calendar_account": calendar_account,
+            "calendar_sources": calendar_sources,
             "calendar_oauth_configured": app_settings.google_oauth_configured,
         },
         status_code=status_code,

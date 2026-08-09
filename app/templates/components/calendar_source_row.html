@@ -1,0 +1,9 @@
+<label class="cal-source-row">
+  <input type="checkbox"
+    {% if source.selected %}checked{% endif %}
+    hx-post="/calendar/sources/{{ source.id }}/toggle"
+    hx-target="closest .cal-source-row"
+    hx-swap="outerHTML">
+  <span class="cal-source-swatch" style="background: {{ source.background_color }};"></span>
+  <span class="cal-source-name">{{ source.summary }}</span>
+</label>

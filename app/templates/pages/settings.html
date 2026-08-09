@@ -35,9 +35,26 @@
       <p class="settings-note">
         Conectado como <span class="settings-emph">{{ calendar_account.google_email }}</span>.
       </p>
-      <form method="post" action="/calendar/disconnect" class="settings-form">
-        <button type="submit" class="button-secondary">Desconectar</button>
-      </form>
+      {% if calendar_sources %}
+        <div class="cal-sources">
+          <p class="cal-sources-hint">Elegí cuáles ver al pie de /today.</p>
+          {% for source in calendar_sources %}
+            {% include "components/calendar_source_row.html" %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="settings-note">
+          No pudimos traer la lista de tus calendarios de Google.
+        </p>
+      {% endif %}
+      <div class="cal-actions">
+        <form method="post" action="/calendar/refresh">
+          <button type="submit" class="button-secondary">Refrescar lista</button>
+        </form>
+        <form method="post" action="/calendar/disconnect">
+          <button type="submit" class="button-secondary">Desconectar</button>
+        </form>
+      </div>
     {% else %}
       <p class="settings-note">
         Vinculá tu calendario para verlo al pie de <a href="/today">/today</a>
