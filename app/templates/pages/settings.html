@@ -26,6 +26,28 @@
     </form>
   </section>
 
+  {% if calendar_oauth_configured %}
+  <section class="settings-block">
+    <h2 class="settings-title">Google Calendar</h2>
+    {% if msgs.calendar_ok %}<p class="form-ok">{{ msgs.calendar_ok }}</p>{% endif %}
+    {% if msgs.calendar_error %}<p class="form-error">{{ msgs.calendar_error }}</p>{% endif %}
+    {% if calendar_account %}
+      <p class="settings-note">
+        Conectado como <span class="settings-emph">{{ calendar_account.google_email }}</span>.
+      </p>
+      <form method="post" action="/calendar/disconnect" class="settings-form">
+        <button type="submit" class="button-secondary">Desconectar</button>
+      </form>
+    {% else %}
+      <p class="settings-note">
+        Vinculá tu calendario para verlo al pie de <a href="/today">/today</a>
+        mientras capturás. Sólo lectura, se puede desconectar en cualquier momento.
+      </p>
+      <a href="/calendar/connect" class="button-primary">Conectar Google Calendar</a>
+    {% endif %}
+  </section>
+  {% endif %}
+
   <section class="settings-block">
     <h2 class="settings-title">Contraseña</h2>
     {% if msgs.password_error %}<p class="form-error">{{ msgs.password_error }}</p>{% endif %}

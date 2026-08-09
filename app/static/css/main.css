@@ -1249,6 +1249,37 @@ textarea.wk-title-input:focus {
   color: var(--muted);
 }
 
+.settings-note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+  max-width: 44ch;
+}
+
+.settings-emph {
+  color: var(--text);
+}
+
+.button-secondary {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--input-border);
+}
+
+a.button-primary,
+a.button-secondary {
+  display: inline-block;
+  text-decoration: none;
+  align-self: flex-start;
+}
+
 @media (min-width: 700px) {
   .container {
     padding-top: 40px;

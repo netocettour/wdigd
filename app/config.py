@@ -34,10 +34,21 @@ class Settings:
         # Cookie de sesión sólo por HTTPS: prender en producción.
         self.secure_cookies: bool = _env_flag("SECURE_COOKIES")
 
+        # Google Calendar OAuth. Vacío = feature deshabilitado (la UI de conectar
+        # no se muestra). Ver docs/google-cloud-setup.md.
+        self.google_client_id: str = os.environ.get("GOOGLE_CLIENT_ID", "")
+        self.google_client_secret: str = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+        # Opcional: si no se define, el router lo arma con request.url_for.
+        self.google_redirect_uri: str = os.environ.get("GOOGLE_REDIRECT_URI", "")
+
         if self.secret_key == DEV_SECRET_KEY:
             logger.warning(
                 "SECRET_KEY sin definir: se usa la clave de desarrollo. No deployar así."
             )
+
+    @property
+    def google_oauth_configured(self) -> bool:
+        return bool(self.google_client_id and self.google_client_secret)
 
 
 settings = Settings()
