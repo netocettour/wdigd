@@ -9,11 +9,20 @@
 
 // — Textareas que crecen con el texto en lugar de scrollear —
 
+// Un salto de scroll menor a este umbral se considera un ajuste legítimo del
+// navegador (por ejemplo, mantener visible el cursor una línea más abajo) y no
+// se toca. Por encima, es rebote del height="auto" y se restaura.
+const WDIGD_GROW_SCROLL_THRESHOLD = 40;
+
 function wdigdGrow(el) {
   // El placeholder no cuenta para scrollHeight: si el campo está vacío se mide con
   // el placeholder puesto, para que un placeholder de dos líneas no quede cortado.
   const placeholding = !el.value && el.placeholder;
   if (placeholding) el.value = el.placeholder;
+  // Colapsar el textarea a "auto" para remedir corre el layout de todo lo que
+  // hay debajo y el navegador reajusta el scroll de la ventana. Sin esto, cada
+  // tecla en un textarea largo empuja el cursor al borde inferior de la pantalla.
+  const savedY = window.scrollY;
   el.style.height = "auto";
   // scrollHeight no incluye los bordes: con box-sizing: border-box hay que sumarlos
   // o queda un scroll de un par de píxeles.
@@ -24,6 +33,9 @@ function wdigdGrow(el) {
       : 0;
   el.style.height = el.scrollHeight + extra + "px";
   if (placeholding) el.value = "";
+  if (Math.abs(window.scrollY - savedY) > WDIGD_GROW_SCROLL_THRESHOLD) {
+    window.scrollTo(0, savedY);
+  }
 }
 
 function wdigdGrowAll() {
