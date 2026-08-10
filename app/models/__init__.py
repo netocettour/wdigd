@@ -13,6 +13,7 @@ from app.models.review import (
     achievement_entries,
 )
 from app.models.daily_note import DailyNote
+from app.models.calendar import CalendarAccount, CalendarSource
 
 __all__ = [
     "DEFAULT_TIMEZONE",
@@ -27,4 +28,6 @@ __all__ = [
     "achievement_entries",
     "REVIEW_ITEM_KINDS",
     "DailyNote",
+    "CalendarAccount",
+    "CalendarSource",
 ]

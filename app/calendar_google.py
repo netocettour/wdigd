@@ -1,0 +1,256 @@
+"""Cliente mínimo para el OAuth 2.0 y la API de Google Calendar.
+
+Funciones puras (no tocan DB). Los routers son responsables de persistir lo
+que devuelven y de manejar los errores hacia la vista.
+"""
+
+from datetime import date, datetime, time, timedelta
+from typing import Any
+from urllib.parse import quote, urlencode
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+import httpx
+
+from app.config import settings
+
+AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+TOKEN_URL = "https://oauth2.googleapis.com/token"
+USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+CALENDAR_LIST_URL = "https://www.googleapis.com/calendar/v3/users/me/calendarList"
+EVENTS_URL_TMPL = "https://www.googleapis.com/calendar/v3/calendars/{cal_id}/events"
+
+DEFAULT_CALENDAR_COLOR = "#4d7ec5"
+
+SCOPES = [
+    "https://www.googleapis.com/auth/calendar.readonly",
+    "openid",
+    "email",
+]
+
+HTTP_TIMEOUT = 5.0
+
+
+class CalendarAuthError(Exception):
+    """Falla del flujo OAuth (código inválido, refresh revocado, red caída).
+    El router traduce esto a "reconectá" en la vista."""
+
+
+def build_authorize_url(redirect_uri: str, state: str) -> str:
+    """URL a la que redirigir al usuario para pedirle permiso a Google."""
+    params = {
+        "client_id": settings.google_client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": " ".join(SCOPES),
+        # offline + prompt=consent asegura refresh_token en cada conexión.
+        "access_type": "offline",
+        "prompt": "consent",
+        "state": state,
+        "include_granted_scopes": "true",
+    }
+    return f"{AUTH_URL}?{urlencode(params)}"
+
+
+def exchange_code(code: str, redirect_uri: str) -> dict[str, Any]:
+    """Cambia el `code` del callback por tokens. Devuelve el JSON de Google
+    (access_token, refresh_token, expires_in, id_token, scope, token_type)."""
+    data = {
+        "code": code,
+        "client_id": settings.google_client_id,
+        "client_secret": settings.google_client_secret,
+        "redirect_uri": redirect_uri,
+        "grant_type": "authorization_code",
+    }
+    return _post_token(data)
+
+
+def refresh_access_token(refresh_token: str) -> str:
+    """Pide un access_token nuevo a partir del refresh_token guardado."""
+    data = {
+        "client_id": settings.google_client_id,
+        "client_secret": settings.google_client_secret,
+        "refresh_token": refresh_token,
+        "grant_type": "refresh_token",
+    }
+    payload = _post_token(data)
+    token = payload.get("access_token")
+    if not token:
+        raise CalendarAuthError("La respuesta de Google no incluyó access_token.")
+    return token
+
+
+def list_calendars(access_token: str) -> list[dict[str, Any]]:
+    """Lista de calendarios que el usuario tiene en su cuenta. Devuelve una
+    forma normalizada: [{"id", "summary", "background_color", "primary"}]."""
+    try:
+        response = httpx.get(
+            CALENDAR_LIST_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+            # minAccessRole=reader alcanza para leer eventos.
+            params={"minAccessRole": "reader"},
+            timeout=HTTP_TIMEOUT,
+        )
+        response.raise_for_status()
+    except httpx.TimeoutException as exc:
+        raise CalendarAuthError("Google no respondió a tiempo.") from exc
+    except httpx.HTTPStatusError as exc:
+        raise CalendarAuthError(
+            f"Google devolvió {exc.response.status_code} al pedir la lista de calendarios."
+        ) from exc
+    except httpx.RequestError as exc:
+        raise CalendarAuthError("No pudimos hablar con Google.") from exc
+
+    items = response.json().get("items", [])
+    return [
+        {
+            "id": item["id"],
+            "summary": item.get("summary") or item.get("summaryOverride") or item["id"],
+            "background_color": item.get("backgroundColor") or DEFAULT_CALENDAR_COLOR,
+            "primary": bool(item.get("primary")),
+        }
+        for item in items
+    ]
+
+
+def list_events_for_day(
+    access_token: str,
+    calendars: list[dict[str, str]],
+    day: date,
+    tz_name: str,
+) -> list[dict[str, Any]]:
+    """Trae los eventos del día para cada calendario y los devuelve mergeados
+    y ordenados. `calendars` es una lista de {"id", "color"}. Cada evento sale
+    normalizado: {summary, start_label, is_all_day, color}. Los all-day quedan
+    primero, luego los timed por hora."""
+    try:
+        tz = ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        tz = ZoneInfo("UTC")
+
+    start_local = datetime.combine(day, time.min, tzinfo=tz)
+    end_local = datetime.combine(day + timedelta(days=1), time.min, tzinfo=tz)
+    time_min = start_local.isoformat()
+    time_max = end_local.isoformat()
+
+    events: list[dict[str, Any]] = []
+    for cal in calendars:
+        raw = _fetch_events(access_token, cal["id"], time_min, time_max)
+        for item in raw:
+            if item.get("status") == "cancelled":
+                continue
+            parsed = _normalize_event(item, tz)
+            if parsed is None:
+                continue
+            parsed["color"] = cal["color"]
+            events.append(parsed)
+
+    events.sort(key=lambda e: (not e["is_all_day"], e["sort_key"], e["summary"].lower()))
+    return events
+
+
+def get_user_email(access_token: str) -> str:
+    """Trae el email de la cuenta que acaba de autorizar. Se usa una sola vez,
+    en el callback, para etiquetar la conexión en /settings."""
+    try:
+        response = httpx.get(
+            USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=HTTP_TIMEOUT,
+        )
+        response.raise_for_status()
+    except httpx.TimeoutException as exc:
+        raise CalendarAuthError("Google no respondió a tiempo.") from exc
+    except httpx.HTTPStatusError as exc:
+        raise CalendarAuthError(
+            f"Google devolvió {exc.response.status_code} al pedir el email."
+        ) from exc
+    except httpx.RequestError as exc:
+        raise CalendarAuthError("No pudimos hablar con Google.") from exc
+    email = response.json().get("email")
+    if not email:
+        raise CalendarAuthError("La respuesta de Google no incluyó email.")
+    return email
+
+
+def _post_token(data: dict[str, str]) -> dict[str, Any]:
+    try:
+        response = httpx.post(TOKEN_URL, data=data, timeout=HTTP_TIMEOUT)
+        response.raise_for_status()
+    except httpx.TimeoutException as exc:
+        raise CalendarAuthError("Google no respondió a tiempo.") from exc
+    except httpx.HTTPStatusError as exc:
+        # Google devuelve JSON con "error"/"error_description" en 4xx.
+        detail = _error_detail(exc.response)
+        raise CalendarAuthError(
+            f"Google rechazó la petición ({exc.response.status_code}): {detail}"
+        ) from exc
+    except httpx.RequestError as exc:
+        raise CalendarAuthError("No pudimos hablar con Google.") from exc
+    return response.json()
+
+
+def _fetch_events(
+    access_token: str,
+    calendar_id: str,
+    time_min: str,
+    time_max: str,
+) -> list[dict[str, Any]]:
+    url = EVENTS_URL_TMPL.format(cal_id=quote(calendar_id, safe=""))
+    try:
+        response = httpx.get(
+            url,
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={
+                "timeMin": time_min,
+                "timeMax": time_max,
+                "singleEvents": "true",
+                "orderBy": "startTime",
+                "maxResults": "50",
+            },
+            timeout=HTTP_TIMEOUT,
+        )
+        response.raise_for_status()
+    except httpx.TimeoutException as exc:
+        raise CalendarAuthError("Google no respondió a tiempo.") from exc
+    except httpx.HTTPStatusError as exc:
+        raise CalendarAuthError(
+            f"Google devolvió {exc.response.status_code} al pedir eventos."
+        ) from exc
+    except httpx.RequestError as exc:
+        raise CalendarAuthError("No pudimos hablar con Google.") from exc
+    return response.json().get("items", [])
+
+
+def _normalize_event(item: dict[str, Any], tz: ZoneInfo) -> dict[str, Any] | None:
+    """Convierte un evento crudo de Google a la forma que consume el template.
+    Devuelve None si el evento no tiene datos utilizables."""
+    summary = (item.get("summary") or "(sin título)").strip()
+    start = item.get("start") or {}
+
+    if "dateTime" in start:
+        try:
+            dt = datetime.fromisoformat(start["dateTime"]).astimezone(tz)
+        except ValueError:
+            return None
+        return {
+            "summary": summary,
+            "start_label": dt.strftime("%H:%M"),
+            "is_all_day": False,
+            "sort_key": dt.isoformat(),
+        }
+    if "date" in start:
+        return {
+            "summary": summary,
+            "start_label": "",
+            "is_all_day": True,
+            "sort_key": start["date"],
+        }
+    return None
+
+
+def _error_detail(response: httpx.Response) -> str:
+    try:
+        body = response.json()
+    except ValueError:
+        return response.text[:120]
+    return body.get("error_description") or body.get("error") or "sin detalle"

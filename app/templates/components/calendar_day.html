@@ -1,0 +1,38 @@
+<div class="cal-day">
+  <div class="cal-day-eyebrow">Tu día</div>
+
+  {% if state == "error" %}
+    <p class="cal-day-note">No pudimos traer tu calendario ahora.</p>
+  {% elif not all_day and not timed %}
+    <p class="cal-day-note">Sin eventos hoy.</p>
+  {% else %}
+    {% if all_day %}
+      {% if all_day|length >= 3 %}
+        <div class="cal-day-allday-chips">
+          {% for e in all_day %}
+            <span class="cal-day-chip">
+              <span class="cal-day-swatch" style="background: {{ e.color }};"></span>
+              {{ e.summary }}
+            </span>
+          {% endfor %}
+        </div>
+      {% else %}
+        {% for e in all_day %}
+          <div class="cal-day-event">
+            <div class="cal-day-time cal-day-time--allday">Todo el día</div>
+            <div class="cal-day-stripe" style="background: {{ e.color }};"></div>
+            <div class="cal-day-title">{{ e.summary }}</div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endif %}
+
+    {% for e in timed %}
+      <div class="cal-day-event">
+        <div class="cal-day-time">{{ e.start_label }}</div>
+        <div class="cal-day-stripe" style="background: {{ e.color }};"></div>
+        <div class="cal-day-title">{{ e.summary }}</div>
+      </div>
+    {% endfor %}
+  {% endif %}
+</div>

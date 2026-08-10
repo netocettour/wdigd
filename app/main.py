@@ -7,7 +7,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
 from app.deps import LoginRequired
-from app.routers import auth, entries, history, settings as settings_router, today, week
+from app.routers import auth, calendar, entries, history, settings as settings_router, today, week
 
 LOGIN_PATH = "/login"
 HOME_PATH = "/today"
@@ -31,6 +31,7 @@ app.include_router(entries.router)
 app.include_router(week.router)
 app.include_router(history.router)
 app.include_router(settings_router.router)
+app.include_router(calendar.router)
 
 
 @app.exception_handler(LoginRequired)

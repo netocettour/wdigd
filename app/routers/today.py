@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -6,14 +7,17 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.calendar_google import CalendarAuthError, list_events_for_day, refresh_access_token
 from app.capture import entries_between, entries_for_date
+from app.crypto import InvalidToken, decrypt
 from app.db import get_db
 from app.deps import get_current_user
-from app.models import DailyNote, User
+from app.models import CalendarAccount, DailyNote, User
 from app.priorities import priorities_for_week
 from app.templating import templates
 from app.weeks import DIAS, fecha_larga, monday_of, user_today
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -81,6 +85,10 @@ def today_page(
     bullets = entries_for_date(db, user, today)
     logros = sum(1 for b in bullets if b.category == "logro")
 
+    has_calendar = (
+        db.query(CalendarAccount).filter_by(user_id=user.id).count() > 0
+    )
+
     return templates.TemplateResponse(
         request,
         "pages/today.html",
@@ -95,8 +103,54 @@ def today_page(
             "can_align": bool(priorities),
             "note": note.text if note else "",
             "closed": note is not None and note.closed_at is not None,
+            "has_calendar": has_calendar,
         },
     )
+
+
+@router.get("/today/calendar")
+def today_calendar(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Fragmento asíncrono con los eventos de hoy. today.html lo pide con HTMX
+    después de renderizar la página; si algo falla, el resto de /today no se
+    entera."""
+    account = db.query(CalendarAccount).filter_by(user_id=user.id).one_or_none()
+    if account is None:
+        return Response(status_code=204)
+
+    selected_sources = [s for s in account.sources if s.selected]
+    if not selected_sources:
+        # El usuario destildó todo: no hay nada que mostrar y no vale la pena
+        # ni un mensaje. El bloque simplemente no existe.
+        return Response(status_code=204)
+
+    try:
+        refresh_token = decrypt(account.refresh_token_enc)
+    except InvalidToken:
+        logger.warning("refresh_token inválido (SECRET_KEY rotada?) para user %s", user.id)
+        return _render_calendar_fragment(request, state="error")
+
+    try:
+        access_token = refresh_access_token(refresh_token)
+        calendars = [
+            {"id": s.google_calendar_id, "color": s.background_color}
+            for s in selected_sources
+        ]
+        events = list_events_for_day(access_token, calendars, user_today(user), user.timezone)
+    except CalendarAuthError as exc:
+        logger.warning("Fetch de eventos falló para user %s: %s", user.id, exc)
+        return _render_calendar_fragment(request, state="error")
+
+    all_day = [e for e in events if e["is_all_day"]]
+    timed = [e for e in events if not e["is_all_day"]]
+    return _render_calendar_fragment(request, state="ok", all_day=all_day, timed=timed)
+
+
+def _render_calendar_fragment(request: Request, **ctx):
+    return templates.TemplateResponse(request, "components/calendar_day.html", ctx)
 
 
 @router.patch("/today/note")
