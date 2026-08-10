@@ -1,4 +1,5 @@
 import logging
+from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -13,6 +14,7 @@ from app.crypto import InvalidToken, decrypt
 from app.db import get_db
 from app.deps import get_current_user
 from app.models import CalendarAccount, DailyNote, User
+from app.models.entry import CATEGORY_LABELS, CATEGORY_VALUES
 from app.priorities import priorities_for_week
 from app.templating import templates
 from app.weeks import DIAS, fecha_larga, monday_of, user_today
@@ -83,7 +85,13 @@ def today_page(
     note = _find_note(db, user, today)
 
     bullets = entries_for_date(db, user, today)
-    logros = sum(1 for b in bullets if b.category == "logro")
+    counts = Counter(b.category for b in bullets)
+    day_summary = " · ".join(
+        f"{counts[cat]} {CATEGORY_LABELS[cat].lower()}"
+        f"{'s' if counts[cat] != 1 else ''}"
+        for cat in CATEGORY_VALUES
+        if counts[cat] > 0
+    )
 
     has_calendar = (
         db.query(CalendarAccount).filter_by(user_id=user.id).count() > 0
@@ -97,7 +105,7 @@ def today_page(
             "date_label": fecha_larga(today),
             "today_iso": today.isoformat(),
             "bullets": bullets,
-            "logros": logros,
+            "day_summary": day_summary,
             "prev_days": _days_before_today(db, user, today),
             "priorities": priorities,
             "can_align": bool(priorities),

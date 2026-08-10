@@ -8,8 +8,8 @@
 <div class="day-done">
   <div class="day-done-date">{{ date_label }}</div>
   <h1 class="day-done-title">Todo listo por hoy</h1>
-  {% if logros > 0 %}
-  <div class="day-done-count">{{ logros }} nuevo{{ 's' if logros != 1 }} logro{{ 's' if logros != 1 }} esta jornada</div>
+  {% if day_summary %}
+  <div class="day-done-count">{{ day_summary }}</div>
   {% endif %}
   <div class="day-done-footer">
     <form method="post" action="/today/reopen" class="js-once">
