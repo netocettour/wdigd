@@ -3,4 +3,7 @@ __pycache__/
 *.pyc
 wdigd.db
 .env
+.env.*
+!.env.example
 .DS_Store
+*.mp4

@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wdigd
+      POSTGRES_PASSWORD: wdigd
+      POSTGRES_DB: wdigd
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wdigd"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://wdigd:wdigd@db:5432/wdigd
+      SECRET_KEY: ${SECRET_KEY:-dev-only-change-me-with-a-random-value}
+      SECURE_COOKIES: "false"
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:

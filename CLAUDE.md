@@ -1,8 +1,8 @@
 # wdigd
 
-App de journaling semanal con dos ritmos: captura diaria (¿qué lograste hoy?) y sesión semanal de reflexión. Leer `docs/plan-mvp-journaling.md` para el contexto completo del producto, el método, el modelo de datos y las reglas de negocio. `README.md` tiene el setup local y el mapa del código.
+App de journaling semanal con dos ritmos: captura diaria (¿qué lograste hoy?) y sesión semanal de reflexión. `README.md` tiene el setup local, las variables de entorno y el mapa del código. Los prototipos en `docs/designs/` son la fuente de verdad del producto.
 
-**Estado:** MVP completo (F1–F5) y en producción en Railway. Lo que sigue son mejoras sueltas sobre una app en uso real, no fases.
+**Estado:** MVP completo y en producción en Railway. Lo que sigue son mejoras sueltas sobre una app en uso real, no fases.
 
 ## Stack
 
@@ -39,8 +39,8 @@ app/
 alembic/
 docs/
   designs/            # prototipos visuales (HTML estático) — fuente de verdad
-  plan-mvp-journaling.md
   deploy-railway.md
+  google-cloud-setup.md
 seed.py               # genera varias semanas de datos ficticios
 README.md
 CLAUDE.md
@@ -58,9 +58,9 @@ CLAUDE.md
 
 ## Diseño visual
 
-Los archivos en `docs/designs/` son prototipos visuales (HTML estático de Claude Design) y **son la fuente de verdad del producto**: apariencia (colores, tipografía, layout, espaciado, breakpoints) y también copy, categorías, interacciones y flujo. Se diseñaron después del plan y representan mejor la intención. Cuando el plan y los prototipos difieran, ganan los prototipos. NO copiar el markup: implementar desde cero en templates Jinja2 + HTMX respetando lo que muestran los prototipos.
+Los archivos en `docs/designs/` son prototipos visuales (HTML estático de Claude Design) y **son la fuente de verdad del producto**: apariencia (colores, tipografía, layout, espaciado, breakpoints) y también copy, categorías, interacciones y flujo. NO copiar el markup: implementar desde cero en templates Jinja2 + HTMX respetando lo que muestran los prototipos.
 
-Diferencias ya resueltas a favor de los prototipos (por si el plan todavía sugiere lo viejo): categorías **Logro / Avance / Desbloqueo** (no logré/avancé/resolví); el "tema" de un bullet es **alineación con una prioridad de la semana**, no un tema de texto libre (no hay tabla `topics`); títulos de la sesión "Resumen de la semana", "Highlights de la semana", "Journal semanal"; días capturados sobre **7**.
+Decisiones vigentes del producto: categorías **Logro / Avance / Desbloqueo** (no logré/avancé/resolví); el "tema" de un bullet es **alineación con una prioridad de la semana**, no un tema de texto libre (no hay tabla `topics`); títulos de la sesión "Resumen de la semana", "Highlights de la semana", "Journal semanal"; días capturados sobre **7**.
 
 El bloque "Preocupaciones y seguimientos" **se sacó del producto** después de usarlo. La tabla `review_items` y su modelo quedan para no perder lo escrito, pero ninguna pantalla los usa: no reintroducirlos.
 
@@ -78,7 +78,7 @@ Voseo rioplatense, directo y sin entusiasmo artificial. Ejemplos: "¿Qué logras
 
 ## Cómo trabajar
 
-El MVP está terminado y en uso. Las fases F1–F5 del plan quedaron cerradas; ahora se trabaja por mejoras chicas y verificables sobre una app en producción. Si algo no está definido en el plan ni en los prototipos, preguntar antes de inventar.
+El MVP está terminado y en uso; ahora se trabaja por mejoras chicas y verificables sobre una app en producción. Si algo no está definido en los prototipos ni en este archivo, preguntar antes de inventar.
 
 Verificar los cambios corriendo la app (`uvicorn app.main:app --reload` con `python seed.py` de por medio), no sólo leyendo el diff. No hay suite de tests automatizados todavía.
 
