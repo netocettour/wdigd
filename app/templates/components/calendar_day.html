@@ -1,10 +1,10 @@
 <div class="cal-day">
-  <div class="cal-day-eyebrow">Tu día</div>
+  <div class="cal-day-eyebrow">Tu calendario</div>
 
   {% if state == "error" %}
     <p class="cal-day-note">No pudimos traer tu calendario ahora.</p>
   {% elif not all_day and not timed %}
-    <p class="cal-day-note">Sin eventos hoy.</p>
+    <p class="cal-day-note">Sin eventos el día de hoy.</p>
   {% else %}
     {% if all_day %}
       {% if all_day|length >= 3 %}

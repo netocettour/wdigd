@@ -303,11 +303,36 @@ a:hover {
 /* Captura */
 
 .capture-form {
-  margin-top: 4px;
+  margin-top: 24px;
 }
 
 .capture-form input {
   line-height: 1.5;
+}
+
+.capture-input-wrap {
+  position: relative;
+}
+
+.capture-input-wrap input {
+  padding-right: 48px;
+}
+
+.capture-kbd {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--input-border);
+  background: light-dark(#fff, #1a150e);
+  color: var(--muted);
+  pointer-events: none;
+  user-select: none;
 }
 
 .capture-hint {
@@ -636,10 +661,9 @@ a:hover {
 /* Antes esta semana */
 
 .prev-days {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 26px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-soft);
 }
 
 .prev-days-label {
@@ -647,6 +671,42 @@ a:hover {
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.prev-days > summary.prev-days-label {
+  cursor: pointer;
+  list-style: none;
+  transition: color 0.15s ease;
+}
+
+.prev-days > summary.prev-days-label::-webkit-details-marker {
+  display: none;
+}
+
+.prev-days > summary.prev-days-label::before {
+  content: "+";
+  display: inline-block;
+  width: 14px;
+  margin-right: 6px;
+  color: var(--muted-2);
+  font-weight: 400;
+  transition: color 0.15s ease;
+}
+
+.prev-days[open] > summary.prev-days-label::before {
+  content: "−";
+}
+
+.prev-days > summary.prev-days-label:hover,
+.prev-days > summary.prev-days-label:hover::before {
+  color: var(--accent);
+}
+
+.prev-days-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 18px;
 }
 
 .prev-day {

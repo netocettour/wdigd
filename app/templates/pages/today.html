@@ -36,7 +36,10 @@
 
 <form class="capture-form" hx-post="/entries" hx-target="#today-bullets" hx-swap="outerHTML"
   hx-on::after-request="if(event.detail.successful){ this.reset(); var h=this.querySelector('.capture-hint'); if(h) h.classList.remove('visible'); }">
-  <input name="text" placeholder="Un bullet por vez · Enter agrega" autocomplete="off" autofocus>
+  <div class="capture-input-wrap">
+    <input name="text" placeholder="Lanzamos un nuevo deploy exitoso /L" autocomplete="off" autofocus>
+    <kbd class="capture-kbd" aria-hidden="true">↵</kbd>
+  </div>
   <button type="submit" hidden></button>
 </form>
 
@@ -46,7 +49,7 @@
   <label class="daily-note-label" for="daily-note">¿Qué te gustaría recordar del día de hoy?</label>
   <textarea id="daily-note" class="daily-note-input js-autolist js-autogrow" name="text" rows="3"
     hx-patch="/today/note" hx-trigger="keyup changed delay:700ms" hx-swap="none"
-    placeholder="Algo que quieras anotar... (* para una lista)">{{ note }}</textarea>
+    placeholder="Al terminar el día me sentí...">{{ note }}</textarea>
 </div>
 
 <div class="day-close-action">
@@ -57,20 +60,27 @@
 
 {% if has_calendar %}
 <div hx-get="/today/calendar" hx-trigger="load" hx-swap="outerHTML"></div>
+{% else %}
+<div class="cal-day">
+  <div class="cal-day-eyebrow">Tu calendario</div>
+  <p class="cal-day-note">Conectá tu calendario desde <a href="/settings">Ajustes</a>.</p>
+</div>
 {% endif %}
 
 {% if prev_days %}
-<div class="prev-days">
-  <div class="prev-days-label">Antes esta semana</div>
-  {% for d in prev_days %}
-  <div class="prev-day">
-    <div class="prev-day-name">{{ d.day }}</div>
-    <div class="prev-day-items">
-      {% for text in d.rows %}<div class="prev-item">{{ text }}</div>{% endfor %}
+<details class="prev-days">
+  <summary class="prev-days-label">Esta semana</summary>
+  <div class="prev-days-items">
+    {% for d in prev_days %}
+    <div class="prev-day">
+      <div class="prev-day-name">{{ d.day }}</div>
+      <div class="prev-day-items">
+        {% for text in d.rows %}<div class="prev-item">{{ text }}</div>{% endfor %}
+      </div>
     </div>
+    {% endfor %}
   </div>
-  {% endfor %}
-</div>
+</details>
 {% endif %}
 </div>
 {% endif %}
