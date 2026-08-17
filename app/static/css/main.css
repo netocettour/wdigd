@@ -998,7 +998,7 @@ textarea.wk-title-input:focus {
 }
 
 .wk-day {
-  font-size: var(--fs-eyebrow);
+  font-size: var(--fs-meta);
   color: var(--muted);
   width: 30px;
   flex: none;
@@ -1018,13 +1018,13 @@ textarea.wk-title-input:focus {
 }
 
 .wk-highlight-tag {
-  font-size: var(--fs-eyebrow);
+  font-size: var(--fs-meta);
   font-style: italic;
   color: var(--muted);
 }
 
 .wk-cat-ro {
-  font-size: var(--fs-eyebrow);
+  font-size: var(--fs-meta);
   color: var(--muted);
   align-self: flex-start;
 }
@@ -1059,7 +1059,7 @@ textarea.wk-title-input:focus {
 }
 
 .ach-prios {
-  font-size: var(--fs-eyebrow);
+  font-size: var(--fs-meta);
   color: var(--muted);
 }
 
@@ -1166,7 +1166,7 @@ textarea.wk-title-input:focus {
 }
 
 .wk-step-dot {
-  font-size: var(--fs-eyebrow);
+  font-size: var(--fs-meta);
   letter-spacing: 0.03em;
   color: var(--muted);
   cursor: pointer;
@@ -1197,20 +1197,6 @@ textarea.wk-title-input:focus {
 }
 
 /* .wk-wizard-btn: se agrupa con .button-primary arriba */
-
-.wk-wizard-back {
-  font-family: var(--sans);
-  font-size: var(--fs-meta);
-  background: none;
-  border: none;
-  padding: 4px 0;
-  cursor: pointer;
-  color: var(--muted);
-}
-
-.wk-wizard-back:hover {
-  color: var(--brand-orange);
-}
 
 /* Notas del día en /week */
 
